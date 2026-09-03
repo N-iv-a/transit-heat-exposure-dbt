@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: raw_emt
+    schema: raw_emt
+    description: EMT Valencia (urban bus network) GTFS feed, loaded as-is into DuckDB.
+    tables:
+      - name: agency
+      - name: routes
+      - name: trips
+      - name: stops
+      - name: stop_times
+      - name: calendar
+      - name: calendar_dates

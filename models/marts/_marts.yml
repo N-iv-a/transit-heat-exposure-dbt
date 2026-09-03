@@ -1,0 +1,46 @@
+version: 2
+
+models:
+  - name: dim_agency
+    columns:
+      - name: agency_id
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_route
+    columns:
+      - name: route_id
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_stop
+    columns:
+      - name: stop_id
+        tests:
+          - unique
+          - not_null
+
+  - name: fct_trips
+    columns:
+      - name: trip_id
+        tests:
+          - not_null
+      - name: route_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_route')
+                field: route_id
+
+  - name: fct_stop_times
+    columns:
+      - name: stop_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_stop')
+                field: stop_id

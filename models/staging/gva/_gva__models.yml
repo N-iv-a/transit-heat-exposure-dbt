@@ -1,0 +1,48 @@
+version: 2
+
+models:
+  - name: stg_gva__routes
+    columns:
+      - name: route_id
+        tests:
+          - unique
+          - not_null
+      - name: route_type
+        tests:
+          - accepted_values:
+              arguments:
+                values: [3]
+
+  - name: stg_gva__trips
+    columns:
+      - name: trip_id
+        tests:
+          - unique
+          - not_null
+      - name: route_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_gva__routes')
+                field: route_id
+
+  - name: stg_gva__stops
+    columns:
+      - name: stop_id
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_gva__stop_times
+    columns:
+      - name: trip_id
+        tests:
+          - not_null
+      - name: stop_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_gva__stops')
+                field: stop_id

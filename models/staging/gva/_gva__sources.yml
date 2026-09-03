@@ -1,0 +1,17 @@
+version: 2
+
+sources:
+  - name: raw_gva
+    schema: raw_gva
+    description: >
+      Generalitat Valenciana interurban bus GTFS feed, loaded as-is into DuckDB.
+      This feed has no calendar.txt: service dates come only from
+      calendar_dates.txt (exception_type = 1, "added"), and only cover a
+      rolling ~2 week window.
+    tables:
+      - name: agency
+      - name: routes
+      - name: trips
+      - name: stops
+      - name: stop_times
+      - name: calendar_dates

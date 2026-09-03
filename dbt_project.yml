@@ -1,0 +1,22 @@
+name: gtfs_valencia
+version: "1.0.0"
+config-version: 2
+
+profile: gtfs_valencia
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  gtfs_valencia:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: view
+    marts:
+      +materialized: table

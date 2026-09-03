@@ -1,0 +1,7 @@
+gtfs_valencia:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: gtfs.duckdb
+      threads: 4
