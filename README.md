@@ -1,59 +1,59 @@
 # GTFS Valencia — dbt + DuckDB
 
-Modellazione dimensionale (Kimball) di due feed di trasporto pubblico reali della Comunitat Valenciana — rete urbana e rete interurbana — con dbt e DuckDB. Nessun warehouse cloud: gira interamente su un file locale.
+Dimensional modeling (Kimball) of two real public transit feeds from the Comunitat Valenciana — urban and interurban networks — built with dbt and DuckDB. No cloud warehouse: it runs entirely on a local file.
 
-## 1. Problema
+## 1. Problem
 
-Un feed GTFS grezzo (file CSV con orari, fermate, linee) risponde male a domande operative del tipo *"quante corse passano da questa fermata, il sabato sera?"* — servono join multipli, gestione del calendario dei servizi e aggregazioni ripetute ogni volta. Questo progetto trasforma due feed GTFS eterogenei in uno star schema testato, pronto per rispondere a quel tipo di domande con una query.
+A raw GTFS feed (CSV files with schedules, stops, routes) answers operational questions like *"how many trips pass this stop on Saturday evening?"* badly — it takes multiple joins, service-calendar handling, and the same aggregations rebuilt every time. This project turns two heterogeneous GTFS feeds into a tested star schema, ready to answer that kind of question with a single query.
 
-## 2. Approccio
+## 2. Approach
 
 ```
-raw_emt.*, raw_gva.* (DuckDB, un CSV -> una tabella)
+raw_emt.*, raw_gva.* (DuckDB, one CSV -> one table)
         │
         ▼
-staging/emt/*, staging/gva/*   (pulizia, cast, chiavi prefissate per agenzia)
+staging/emt/*, staging/gva/*   (cleanup, casts, agency-prefixed keys)
         │
         ▼
 intermediate/
-  int_service_dates      trip calendar -> date esatte di servizio
-  int_service_days       date esatte -> "giorno tipo" (Monday, Saturday, ...)
-  int_trips_enriched     trip + route + agency (grana: trip)
+  int_service_dates      trip calendar -> exact service dates
+  int_service_days       exact dates -> "day type" (Monday, Saturday, ...)
+  int_trips_enriched     trip + route + agency (grain: trip)
         │
         ▼
 marts/
   dim_agency, dim_route, dim_stop, dim_date
-  fct_trips            (grana: trip x data di servizio)
-  fct_stop_times        (grana: trip x fermata, orario schedulato)
-  mart_service_frequency   <- il mart di valore
+  fct_trips            (grain: trip x service date)
+  fct_stop_times        (grain: trip x stop, scheduled time)
+  mart_service_frequency   <- the value mart
   mart_stop_coverage
 ```
 
-Due fonti, un modello unico: EMT Valencia (rete urbana, un solo operatore) e GVA (rete interurbana, 50 concessionari) hanno schemi GTFS leggermente diversi — vengono normalizzati nello staging e uniti a partire dall'intermediate layer, con `agency_code` come discriminante esplicito ovunque.
+Two sources, one model: EMT Valencia (urban network, single operator) and GVA (interurban network, 50 concessionaires) have slightly different GTFS schemas — normalized in staging and merged from the intermediate layer onward, with `agency_code` as an explicit discriminant everywhere.
 
-## 3. Scelte e trade-off
+## 3. Choices and trade-offs
 
-- **dbt-duckdb invece di un warehouse cloud.** Il progetto deve girare da un README con `git clone` + due comandi, non da un account Databricks/Snowflake. DuckDB legge i CSV direttamente e il file `.duckdb` è tutto lo stato necessario.
-- **Chiavi surrogate prefissate per agenzia** (`EMT-1017`, `GVA-5105040`, ...) invece di assumere che gli ID non collidano tra le due fonti. È un formato meno pulito nelle viste, ma elimina un'intera classe di bug silenziosi da join sbagliati.
-- **`mart_service_frequency` aggrega per "giorno tipo", non per data esatta.** Il feed EMT ha un calendario di 6 settimane, il feed GVA ne ha uno di sole 2 (nessun `calendar.txt`, solo eccezioni). Espandere `fct_stop_times` per ogni data di servizio avrebbe prodotto decine di milioni di righe per un beneficio analitico marginale — la domanda reale ("il sabato mattina è coperto?") si risponde a livello di giorno-tipo. `fct_trips`, invece, resta a grana data esatta: è lì che serve, per contare occorrenze reali nel periodo coperto dal feed.
-- **`arrival_hour` è calcolato con un modulo 24**, non con un cast a `TIME`: GTFS ammette orari oltre le 24:00 per le corse notturne (es. `25:30:00`), che un tipo `TIME` standard rifiuterebbe.
-- **Niente `dbt_utils` o altri package esterni.** Con due soli test custom necessari, aggiungere una dipendenza esterna (e la sua risoluzione di rete) non era giustificato.
+- **dbt-duckdb instead of a cloud warehouse.** The project needs to run from a README with `git clone` + two commands, not from a Databricks/Snowflake account. DuckDB reads the CSVs directly and the `.duckdb` file is all the state that's needed.
+- **Agency-prefixed surrogate keys** (`EMT-1017`, `GVA-5105040`, ...) instead of assuming IDs don't collide between the two sources. It's a less clean-looking format in the views, but it eliminates an entire class of silent bad-join bugs.
+- **`mart_service_frequency` aggregates by "day type", not by exact date.** The EMT feed has a 6-week calendar, the GVA feed only 2 (no `calendar.txt`, exceptions only). Expanding `fct_stop_times` by every service date would have produced tens of millions of rows for marginal analytical benefit — the real question ("is Saturday morning covered?") is answered at the day-type level. `fct_trips`, on the other hand, stays at exact-date grain: that's where it's needed, to count real occurrences within the feed's coverage window.
+- **`arrival_hour` is computed with a modulo 24**, not a cast to `TIME`: GTFS allows times past 24:00 for overnight trips (e.g. `25:30:00`), which a standard `TIME` type would reject.
+- **No `dbt_utils` or other external packages.** With only two custom tests needed, pulling in an external dependency (and its network resolution) wasn't justified.
 
 ## 4. Anti-features
 
-- **Nessuna geometria dei percorsi.** `shapes.txt` non viene caricato: nessun modello di questo progetto ne ha bisogno, e sono 45+ MB di dati che avrebbero solo appesantito l'ingestion.
-- **Nessuna gestione degli aggiornamenti incrementali.** L'ingestion fa sempre `create or replace table`: per un progetto dimostrativo, con feed che cambiano ogni giorno, mergiare in incrementale sarebbe complessità senza un problema reale da risolvere.
-- **Nessun orchestratore.** Due comandi Python/dbt in sequenza, eseguiti a mano. Aggiungere Airflow o simili per un progetto locale a due fonti sarebbe puro over-engineering.
+- **No route shape geometry.** `shapes.txt` is never loaded: no model in this project needs it, and it's 45+ MB of data that would only have slowed down ingestion.
+- **No incremental-update handling.** Ingestion always does `create or replace table`: for a demo project with daily-changing feeds, building incremental merge logic would be complexity without a real problem to solve.
+- **No orchestrator.** Two Python/dbt commands run by hand, in sequence. Adding Airflow or similar for a local, two-source project would be pure over-engineering.
 
-## 5. Cosa farei diversamente
+## 5. What I'd do differently
 
-- Il confronto EMT/GVA sul "giorno tipo" non è del tutto equo: EMT lo deriva da un pattern settimanale dichiarato (`calendar.txt`), GVA da date effettivamente osservate in una finestra di due settimane. Con un feed GVA più lungo nel tempo (es. uno storico raccolto via cron) si potrebbe validare se il pattern osservato è davvero stabile settimana su settimana.
-- I dati orari di GVA contengono alcuni valori anomali (`47:xx:00`, ~20 righe su 192k) che sono stati normalizzati col modulo ma non investigati alla fonte: in un contesto reale andrebbero segnalati al publisher del feed, non solo silenziati.
-- Un test di unicità composita su `fct_trips` esiste già come test singolare ad-hoc; con `dbt_utils.unique_combination_of_columns` sarebbe stato più leggibile — omesso qui solo per non introdurre una dipendenza esterna per un singolo test.
+- The EMT/GVA "day type" comparison isn't entirely fair: EMT derives it from a declared weekly pattern (`calendar.txt`), GVA from dates actually observed in a two-week window. With a longer-running GVA feed (e.g. a history collected via cron) it would be possible to validate whether the observed pattern is actually stable week over week.
+- GVA's time data contains a handful of anomalous values (`47:xx:00`, ~20 rows out of 192k) that were normalized with the modulo but never investigated at the source: in a real setting these should be reported to the feed publisher, not just silently handled.
+- A composite-uniqueness test on `fct_trips` already exists as an ad-hoc singular test; `dbt_utils.unique_combination_of_columns` would have read more cleanly — left out only to avoid an external dependency for a single test.
 
-## 6. Come farlo girare
+## 6. Running it
 
-Richiede Python 3.10+.
+Requires Python 3.10+.
 
 ```bash
 git clone https://github.com/N-iv-a/gtfs-valencia-dbt
@@ -63,17 +63,17 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-**Dati.** I feed GTFS non sono versionati nel repo (dati di terze parti, decine di MB). Scaricali ed estraili in `data/raw/<agenzia>/*.txt`:
+**Data.** The GTFS feeds aren't versioned in the repo (third-party data, tens of MB). Download and extract them into `data/raw/<agency>/*.txt`:
 
-- EMT Valencia (rete urbana): [Google Transit — Plataforma VLCi](https://opendata.vlci.valencia.es/en/dataset/google-transit-lines-stops-bus-schedules) → estrai in `data/raw/emt/`
-- GVA (rete interurbana): [Itinerarios y horarios — Generalitat Valenciana](https://dadesobertes.gva.es/es/dataset/tra-hyr-atmv-horaris-i-rutes) → estrai in `data/raw/gva/`
+- EMT Valencia (urban network): [Google Transit — Plataforma VLCi](https://opendata.vlci.valencia.es/en/dataset/google-transit-lines-stops-bus-schedules) → extract to `data/raw/emt/`
+- GVA (interurban network): [Itinerarios y horarios — Generalitat Valenciana](https://dadesobertes.gva.es/es/dataset/tra-hyr-atmv-horaris-i-rutes) → extract to `data/raw/gva/`
 
 ```bash
-python ingestion/load_gtfs.py      # CSV -> DuckDB (schemi raw_emt / raw_gva)
-dbt build --profiles-dir .         # staging -> intermediate -> marts, con tutti i test
+python ingestion/load_gtfs.py      # CSV -> DuckDB (raw_emt / raw_gva schemas)
+dbt build --profiles-dir .         # staging -> intermediate -> marts, with all tests
 ```
 
-Esplora il risultato:
+Explore the result:
 
 ```bash
 python3 -c "
@@ -85,4 +85,4 @@ print(con.execute('select * from main.mart_service_frequency order by trip_count
 
 ---
 
-*Costruito con l'assistenza di IA (Claude); architettura, scelte di modellazione e trade-off sono miei.*
+*Built with AI assistance (Claude); architecture, modeling choices and trade-offs are mine.*
