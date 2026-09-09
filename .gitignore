@@ -1,8 +1,10 @@
 .venv/
+.venv-milan/
 __pycache__/
 *.pyc
 
 data/raw/
+data_milan/raw/
 *.duckdb
 *.duckdb.wal
 
