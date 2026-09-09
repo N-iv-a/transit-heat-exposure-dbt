@@ -186,15 +186,75 @@ visible in the final README rather than smoothing it away.
 
 ---
 
+## 6. Shadow-casting implementation and its error margin
+
+**Script:** `scripts/milan/solar_exposure.py`, tested by
+`scripts/milan/test_solar_exposure.py` (7 tests, all passing).
+
+**Method:** for each stop and each hour, get sun azimuth/elevation via
+`pysolar`, then march from the stop toward the sun over the building-height
+raster (reprojected stop coordinates via `pyproj`, EPSG:4326 → EPSG:3035)
+in 10m steps up to `SEARCH_RADIUS_M = 80`. At each step, a building is
+considered tall enough to cast a shadow back to the stop if its height
+exceeds `distance * tan(solar elevation)`. First hit along the ray wins.
+
+**Study date:** June 28, 2026 — the hottest day found in §5, not an
+arbitrary solstice pick. Hours: 12:00–18:00 local (CEST), matching the
+empirical critical window from §5.
+
+**Error margin, computed and printed by the script itself, not asserted
+after the fact:**
+
+| Hour | Elevation | Max height missable beyond 80m |
+|---|---|---|
+| 12:00 | 61.7° | 149m |
+| 13:00 | 67.2° | 190m |
+| 14:00 | 66.8° | 187m |
+| 15:00 | 60.8° | 143m |
+| 16:00 | 51.9° | 102m |
+| 17:00 | 41.8° | 71m |
+| 18:00 | 31.3° | 49m |
+
+The raster's tallest building is 125m. So for 12:00–16:00, the truncation
+at 80m cannot miss anything in this dataset — the required height to be
+missed already exceeds what exists. Real (bounded) risk of under-detecting
+shadow starts at 17:00 (buildings >71m beyond 80m) and is largest at 18:00
+(buildings >49m beyond 80m). This is a declared limitation of the last two
+hours in the window, not the whole result.
+
+**Result on the real data (2,931 stops × 7 hours = 20,517 rows):**
+
+- % of (stop, hour) pairs exposed (no shadow, no shelter): 37.4% overall
+- Physically sane pattern: only 4.9–5.4% of stops are in building shadow at
+  solar noon (13:00–14:00, sun nearly overhead → short shadows), rising to
+  32.4% by 18:00 (low sun → long shadows) — the model responds to solar
+  geometry the way it should, not noise
+- **724 stops (25%) are exposed at every one of the 7 hours** — never
+  shadowed by a building, never sheltered. These are the actionable
+  finding: candidates for shelter/shade investment.
+- 1,612 stops (55%) are never exposed in the window (shadowed at some
+  point, sheltered, or both)
+
+Output seed: `data_milan/seeds/stop_solar_exposure.csv` (columns: stop_id,
+hour, solar_azimuth, solar_elevation, in_building_shadow, has_shelter,
+exposed).
+
 ## Still open
 
-- Reprojection pipeline: EPSG:3035 (building height) + WGS84 (GTFS stops,
-  OSM) → needs one consistent CRS before any spatial join
-- Shadow-casting algorithm implementation + its error-margin estimate
+- dbt layer: `stg_stop_solar_exposure`, `int_stop_wait_time`,
+  `mart_stop_heat_risk` from the original scope are not yet written — the
+  seed above is ready to be the source for them
 - How exactly `shelter` and building-shadow layers combine into one
-  exposure signal (two separate columns? one blended score? — "metric in
-  physical units, not a score" from the original scope argues against
-  blending into an opaque single number)
-- Whether the critical-day windows found here change which GTFS service
-  dates get joined against (`mart_service_frequency` is day-type based, not
-  exact-date — may need a different join to bring in the actual 2026 dates)
+  exposure signal is already answered by the script (both must be absent
+  for "exposed" to be true) — but whether the mart should also expose them
+  separately (for a "how much does shelter alone change things" cut) isn't
+  decided yet
+- Whether the critical-day windows found in §5 change which GTFS service
+  dates get joined against (`mart_service_frequency` in the Valencia repo
+  is day-type based, not exact-date — Milan's mart may want the actual June
+  28 service pattern specifically, which needs a different join)
+- This is a single representative day (June 28), not the full June
+  13–August 20 window — a real simplification consistent with the
+  project's "declared v1 approximation" pattern (same spirit as Valencia's
+  headway-based wait time), but worth being explicit that "hottest day"
+  ≠ "every hot day"
