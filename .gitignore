@@ -8,6 +8,9 @@ data_milan/raw/
 *.duckdb
 *.duckdb.wal
 
+scripts/milan/map/data/
+scripts/milan/map/dist/
+
 target/
 dbt_packages/
 logs/
