@@ -1,0 +1,19 @@
+version: 2
+
+models:
+  - name: int_stop_wait_time
+    columns:
+      - name: gtfs_stop_id
+        tests:
+          - not_null
+      - name: hour
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [12, 13, 14, 15, 16, 17, 18]
+      - name: wait_time_bucket
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["low", "medium", "high"]

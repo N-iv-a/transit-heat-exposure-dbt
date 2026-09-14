@@ -241,9 +241,6 @@ exposed).
 
 ## Still open
 
-- dbt layer: `stg_stop_solar_exposure`, `int_stop_wait_time`,
-  `mart_stop_heat_risk` from the original scope are not yet written — the
-  seed above is ready to be the source for them
 - How exactly `shelter` and building-shadow layers combine into one
   exposure signal is already answered by the script (both must be absent
   for "exposed" to be true) — but whether the mart should also expose them
@@ -313,3 +310,37 @@ the top of the scale would wash out the difference between everyone else.
 No building-height backdrop on this map yet (different, larger bounding
 box than the exposure map's OSM stops — the backdrop image would need
 regenerating at that extent, not reused as-is).
+
+## 8. dbt layer
+
+**Ingestion:** `ingestion/load_milan.py`, mirroring `load_gtfs.py`'s
+pattern — loads the two CSVs from §6/§7 into a `raw_milan` schema. Unlike
+`raw_emt`/`raw_gva`, these aren't a raw GTFS extract, they're already
+computed by the two Python scripts, so there's no `data_milan/raw/`
+equivalent to `data/raw/` and no per-agency file list to iterate.
+
+**Models** (`models/staging/milan/`, `models/intermediate/`, `models/marts/`):
+
+- `stg_stop_solar_exposure` — cast/rename over `raw_milan.stop_solar_exposure`.
+  Renames `stop_id` to `osm_node_id` here rather than leaving it generic,
+  so the ID-space split from §7 is visible in the schema itself, not just
+  in this doc.
+- `int_stop_wait_time` — reads `raw_milan.stop_wait_time` directly (no
+  staging layer: the source CSV is already a computed metric, not a raw
+  extract needing normalization). Adds `wait_time_bucket`
+  (low/medium/high, split at the same 10/25-minute marks the map's colour
+  ramp uses).
+- `mart_stop_heat_risk` — grain change from `stg_stop_solar_exposure`
+  (stop × hour) to stop: `hours_exposed`, `pct_hours_exposed`, and a
+  `risk_level` flag (`high` = exposed at all 7 hours — the 724-stop
+  actionable finding from §6). Deliberately does not join
+  `int_stop_wait_time` in: the two models key off different ID spaces
+  (OSM node id vs. GTFS `stop_id`), so heat risk and wait time stay two
+  separate marts, matching the two separate maps, rather than forcing a
+  join that would silently drop or duplicate rows.
+- Tests: `not_null`/`accepted_values` on hour and bucket/risk columns, plus
+  a singular uniqueness test (`assert_stg_stop_solar_exposure_unique_node_hour.sql`,
+  mirroring `assert_fct_trips_unique_trip_date.sql`'s pattern) and
+  `unique`/`not_null` on `mart_stop_heat_risk.osm_node_id`. All pass;
+  `mart_stop_heat_risk`'s risk_level counts (724 high / 595 medium / 1,612
+  low) match §6's findings exactly.

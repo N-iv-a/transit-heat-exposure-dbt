@@ -1,0 +1,25 @@
+version: 2
+
+sources:
+  - name: raw_milan
+    schema: raw_milan
+    description: >
+      Milan heat-exposure data, loaded by ingestion/load_milan.py. Unlike
+      raw_emt/raw_gva, these tables aren't a raw GTFS feed -- they're the
+      already-computed outputs of scripts/milan/solar_exposure.py and
+      scripts/milan/wait_time.py (see docs/MILAN_DATA_DECISIONS.md for the
+      full method and data-sourcing rationale for both).
+    tables:
+      - name: stop_solar_exposure
+        description: >
+          One row per (OSM stop node, hour), for June 28 2026 (the hottest
+          day found in the ARPA analysis), hours 12-18 (the empirical
+          critical window). stop_id here is an OSM node id ("node/12345"),
+          not a GTFS stop_id -- see stop_wait_time below.
+      - name: stop_wait_time
+        description: >
+          One row per (GTFS stop_id, hour), median expected wait time
+          (headway/2, per-line-then-median across lines) for the reference
+          day 2026-09-13. stop_id here is a GTFS stop_id, a different ID
+          space from stop_solar_exposure's OSM node ids -- no join between
+          the two is attempted (see docs/MILAN_DATA_DECISIONS.md, section 7).

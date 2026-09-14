@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: mart_stop_heat_risk
+    columns:
+      - name: osm_node_id
+        tests:
+          - unique
+          - not_null
+      - name: risk_level
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["low", "medium", "high"]
