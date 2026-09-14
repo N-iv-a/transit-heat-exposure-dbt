@@ -1,0 +1,144 @@
+"""Compute median expected wait time per Milan GTFS stop, per hour band
+(12:00-18:59, one bucket per clock hour), for a representative Sunday.
+
+Why a representative day, not June 28 2026 itself: the ATM GTFS feed is a
+rolling present-plus-near-future snapshot (feed_start_date 2026-08-31) and
+does not retain historical schedules back to June. June 28 2026 was a
+Sunday, so this uses September 13 2026 — a Sunday fully inside the feed's
+well-covered window (118 service_ids, same order of magnitude as every
+other early date in the feed; dates from Sep 14 on drop to just 5
+service_ids and are not representative). Same "day type over exact date"
+logic already used for mart_service_frequency in the Valencia repo, for
+the same underlying reason: GTFS coverage windows are short and don't
+line up with an arbitrary historical date.
+
+Method (per the project owner's choice — precise over cheap):
+  1. Per (stop, route, hour): the scheduled departures for that route at
+     that stop are sorted; the wait is estimated from the MEDIAN interval
+     between consecutive departures whose first departure falls in that
+     hour, halved (average wait under random passenger arrival — the same
+     headway/2 assumption already used in the Valencia project's design).
+  2. Per (stop, hour): the median of that value ACROSS the routes serving
+     the stop in that hour — not a combined-schedule estimate. More
+     expensive, but answers "how long do I wait for MY bus," which is
+     what a rider actually experiences, not "how long until any vehicle."
+
+Gaps longer than 3 hours are dropped before computing the median: those
+are almost always the last trip of the day for a route, not a real
+headway, and would otherwise inflate a low-frequency line's evening wait
+with a number nobody actually experiences.
+"""
+
+from pathlib import Path
+
+import duckdb
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+GTFS_DIR = PROJECT_ROOT / "data_milan/raw/gtfs"
+OUTPUT_CSV = PROJECT_ROOT / "data_milan/seeds/stop_wait_time.csv"
+
+REFERENCE_DATE = 20260913  # Sunday, fully covered by the feed
+MAX_GAP_SECONDS = 3 * 3600  # drop end-of-service gaps, not real headways
+
+QUERY = f"""
+with active_services as (
+    select service_id
+    from read_csv_auto('{GTFS_DIR}/calendar_dates.txt')
+    where date = {REFERENCE_DATE} and exception_type = 1
+),
+trips_active as (
+    select t.trip_id, t.route_id
+    from read_csv_auto('{GTFS_DIR}/trips.txt') t
+    join active_services s using (service_id)
+),
+departures as (
+    select
+        st.stop_id,
+        ta.route_id,
+        st.trip_id,
+        cast(split_part(st.departure_time, ':', 1) as integer) as raw_hour,
+        cast(split_part(st.departure_time, ':', 1) as integer) * 3600
+          + cast(split_part(st.departure_time, ':', 2) as integer) * 60
+          + cast(split_part(st.departure_time, ':', 3) as integer) as total_seconds
+    from read_csv_auto(
+        '{GTFS_DIR}/stop_times.txt',
+        types={{'stop_id': 'VARCHAR'}}
+    ) st
+    join trips_active ta using (trip_id)
+    -- a handful of rows in the raw feed carry a stop NAME (e.g. "ABBIATEGRASSO")
+    -- instead of a numeric stop_id -- real data quality noise, not a parsing bug.
+    -- They won't match any row in stops.txt and are dropped by the later join,
+    -- which is the right outcome: better to drop a stop we can't place than to
+    -- guess at a location for it.
+),
+ordered as (
+    select
+        stop_id, route_id, total_seconds,
+        (raw_hour % 24) as hour_bucket,
+        lead(total_seconds) over (partition by stop_id, route_id order by total_seconds) as next_seconds
+    from departures
+),
+intervals as (
+    select stop_id, route_id, hour_bucket, (next_seconds - total_seconds) as interval_seconds
+    from ordered
+    where next_seconds is not null
+      and hour_bucket between 12 and 18
+      and next_seconds > total_seconds
+      and (next_seconds - total_seconds) < {MAX_GAP_SECONDS}
+),
+route_headway as (
+    select stop_id, route_id, hour_bucket,
+           median(interval_seconds) as headway_seconds
+    from intervals
+    group by 1, 2, 3
+)
+select
+    stop_id,
+    hour_bucket as hour,
+    round(median(headway_seconds) / 2.0 / 60.0, 1) as median_wait_minutes,
+    count(distinct route_id) as n_lines
+from route_headway
+group by 1, 2
+order by 1, 2
+"""
+
+
+def main() -> None:
+    con = duckdb.connect()
+    rows = con.execute(QUERY).fetchall()
+    cols = [d[0] for d in con.description]
+    print(f"{len(rows)} (stop, hour) rows with a computable wait time")
+
+    stops = con.execute(
+        f"select stop_id, stop_name, stop_lat, stop_lon "
+        f"from read_csv_auto('{GTFS_DIR}/stops.txt', types={{'stop_id': 'VARCHAR'}})"
+    ).fetchall()
+    stop_meta = {r[0]: (r[1], r[2], r[3]) for r in stops}
+
+    OUTPUT_CSV.parent.mkdir(parents=True, exist_ok=True)
+    import csv
+
+    with open(OUTPUT_CSV, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["stop_id", "stop_name", "lat", "lon", "hour", "median_wait_minutes", "n_lines"])
+        n_written = 0
+        for row in rows:
+            row_d = dict(zip(cols, row))
+            meta = stop_meta.get(row_d["stop_id"])
+            if not meta:
+                continue
+            name, lat, lon = meta
+            writer.writerow([row_d["stop_id"], name, lat, lon, row_d["hour"], row_d["median_wait_minutes"], row_d["n_lines"]])
+            n_written += 1
+
+    print(f"Wrote {n_written} rows to {OUTPUT_CSV}")
+    waits = [r[2] for r in rows]
+    if waits:
+        waits_sorted = sorted(waits)
+        mid = len(waits_sorted) // 2
+        print(f"Median wait across all (stop,hour): {waits_sorted[mid]:.1f} min")
+        print(f"Max wait: {max(waits):.1f} min, min wait: {min(waits):.1f} min")
+
+
+if __name__ == "__main__":
+    main()
