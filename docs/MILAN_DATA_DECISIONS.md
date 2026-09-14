@@ -258,3 +258,58 @@ exposed).
   project's "declared v1 approximation" pattern (same spirit as Valencia's
   headway-based wait time), but worth being explicit that "hottest day"
   ≠ "every hot day"
+
+## 7. Wait time per stop (evolutivo, not merged into the exposure signal)
+
+Added on request, kept deliberately separate — a different question
+("how long do I wait") from exposure ("am I in the sun"), and a different
+underlying dataset (GTFS `stop_id`, not the OSM nodes used for shelter/
+shadow), so it's its own script, its own seed, and its own map rather than
+a new column bolted onto `stop_solar_exposure.csv`.
+
+**Script:** `scripts/milan/wait_time.py`. **Seed:**
+`data_milan/seeds/stop_wait_time.csv` (28,655 stop×hour rows, 4,192 distinct
+GTFS stops).
+
+**Reference day, again not June 28 itself.** The ATM GTFS feed is a
+present-plus-near-future snapshot (`feed_start_date` 2026-08-31) and simply
+doesn't contain June's schedule. June 28 2026 was a Sunday, so **September
+13, 2026** — a Sunday fully inside the feed's well-covered window (118
+active service_ids, versus just 5 for dates from Sep 14 on, which are
+clearly not representative) — stands in as the day-type. Confirmed
+acceptable: service patterns don't shift much over a few months when
+schools are still in session, which they were in both June and this
+September window.
+
+**Method, precise over cheap (the project owner's explicit choice over a
+cheaper combined-schedule shortcut):**
+1. Per (stop, route, hour): sort that route's scheduled departures at that
+   stop; take the **median** interval between consecutive departures whose
+   first departure falls in the hour; halve it (headway/2 — the same
+   random-arrival assumption already used for Valencia, not a new one).
+2. Per (stop, hour): the **median across every route serving that stop**
+   in that hour of step 1's value — answers "how long do I wait for *my*
+   line," not "how long until any vehicle regardless of line."
+3. Gaps longer than 3 hours are dropped before the median: almost always
+   the last trip of the day for that route, not a real headway — keeping
+   them in would make a low-frequency line's evening wait look far worse
+   than any rider actually experiences.
+
+**Sanity check:** Duomo M1/M3 (a major two-line interchange) comes out to
+7–9 minutes across the afternoon — right for Sunday metro frequency.
+
+**Known gap, same shape as the shelter/shadow ID mismatch:** GTFS `stop_id`
+and the OSM node ids used for the exposure map are two different ID spaces
+with no shared key, and no join was attempted — this map plots GTFS's own
+4,192 stops (metro, tram, bus) at GTFS's own coordinates, independently of
+the 2,931 OSM stops in the exposure map. Reconciling them (nearest-point
+match) is a fair next step if the two are ever meant to be read together,
+not assumed here.
+
+**Visualization:** blue-to-violet sequential ramp (the project owner's
+request), capped at 25 minutes for color purposes — a handful of
+low-frequency stops wait up to ~81 minutes, and letting that outlier set
+the top of the scale would wash out the difference between everyone else.
+No building-height backdrop on this map yet (different, larger bounding
+box than the exposure map's OSM stops — the backdrop image would need
+regenerating at that extent, not reused as-is).
