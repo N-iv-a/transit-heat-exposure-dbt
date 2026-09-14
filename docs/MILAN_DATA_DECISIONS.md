@@ -344,3 +344,47 @@ equivalent to `data/raw/` and no per-agency file list to iterate.
   `unique`/`not_null` on `mart_stop_heat_risk.osm_node_id`. All pass;
   `mart_stop_heat_risk`'s risk_level counts (724 high / 595 medium / 1,612
   low) match §6's findings exactly.
+
+## 9. Running it
+
+Uses a separate virtualenv from Valencia (`.venv-milan`): rasterio,
+pyproj, and pysolar aren't needed there.
+
+```bash
+python3 -m venv .venv-milan && source .venv-milan/bin/activate
+pip install -r scripts/milan/requirements.txt
+```
+
+**Data.** Building height, OSM shelter, and ARPA weather CSVs are already
+committed under `data_milan/seeds/` (open-license third-party data, small
+enough to version). The GTFS feed itself is not — download and extract the
+ATM Milano feed (`dati.comune.milano.it/gtfs.zip`) to `data_milan/raw/gtfs/`.
+
+```bash
+python scripts/milan/solar_exposure.py   # -> data_milan/seeds/stop_solar_exposure.csv
+python scripts/milan/wait_time.py        # -> data_milan/seeds/stop_wait_time.csv
+
+python ingestion/load_milan.py           # CSVs -> DuckDB (raw_milan schema)
+dbt build --profiles-dir . --select stg_stop_solar_exposure int_stop_wait_time mart_stop_heat_risk
+```
+
+Explore the result:
+
+```bash
+python3 -c "
+import duckdb
+con = duckdb.connect('gtfs.duckdb')
+print(con.execute('select risk_level, count(*) from main.mart_stop_heat_risk group by 1').fetchall())
+"
+```
+
+**Map tool** (optional — separate deps, see
+[`scripts/milan/map/README.md`](../scripts/milan/map/README.md) for the
+full pipeline and its known deferred aesthetic issues):
+
+```bash
+cd scripts/milan/map
+python prepare_exposure_data.py && python prepare_wait_data.py \
+  && python render_building_backdrop.py && python build_map.py
+# -> dist/milan_heat_map.html, open directly in a browser
+```
