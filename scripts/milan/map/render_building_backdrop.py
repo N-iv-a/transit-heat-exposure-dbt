@@ -1,6 +1,6 @@
-"""Render the Copernicus building-height raster into two small PNGs (light
-/ dark theme) that exactly match the map template's own projection, so the
-backdrop lines up pixel-for-pixel with the plotted stops.
+"""Render the Copernicus building-height raster into a small PNG that exactly
+matches the map template's own projection, so the backdrop lines up
+pixel-for-pixel with the plotted stops.
 
 Why a rendered image instead of a live basemap: no tile server is reachable
 from a published Claude artifact (or from this sandbox) -- see
@@ -33,8 +33,7 @@ OUT_W = 760
 MAX_HEIGHT_M = 60  # shading cap; a few very tall towers just top out the ramp
 PLAIN_GRID_W = 1400
 
-LIGHT_COLORS = ("#EDE2C8", "#AB9166")
-DARK_COLORS = ("#2E2718", "#5C4B2A")
+BUILDING_COLORS = ("#EDE2C8", "#AB9166")
 
 
 def stop_bounds() -> tuple[float, float, float, float]:
@@ -115,11 +114,10 @@ def main() -> None:
     height_grid, nodata = reproject_to_plain_grid(lon_min, lon_max, lat_min, lat_max)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    for name, colors in [("light", LIGHT_COLORS), ("dark", DARK_COLORS)]:
-        img = build_backdrop(height_grid, nodata, vb_w, vb_h, colors[0], colors[1], OUT_W)
-        path = OUTPUT_DIR / f"buildings_{name}.png"
-        img.save(path, optimize=True)
-        print(f"{path}: {path.stat().st_size / 1024:.0f} KB")
+    img = build_backdrop(height_grid, nodata, vb_w, vb_h, BUILDING_COLORS[0], BUILDING_COLORS[1], OUT_W)
+    path = OUTPUT_DIR / "buildings.png"
+    img.save(path, optimize=True)
+    print(f"{path}: {path.stat().st_size / 1024:.0f} KB")
 
 
 if __name__ == "__main__":

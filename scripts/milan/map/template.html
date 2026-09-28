@@ -1,14 +1,13 @@
 <title>Milan Heat Exposure</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
   :root{
-    --bg:#FAF6EE;
+    --bg:#FFFFFF;
     --surface:#FFFFFF;
-    --surface-2:#F3ECDC;
-    --border:#E7DCC6;
-    --text:#211A12;
-    --text-2:#6E6252;
-    --text-3:#9A8E7A;
+    --surface-2:#F5F5F5;
+    --border:#E2E2E2;
+    --text:#1A1A1A;
+    --text-2:#595959;
+    --text-3:#6B6B6B;
     --accent:#1D5C63;
     --accent-tint:#E4EFEE;
     --accent-ink:#0F3438;
@@ -18,68 +17,24 @@
     --ramp-3:#F06430;
     --ramp-4:#C93A1E;
     --ramp-5:#7A1B0E;
-    --marker-edge: rgba(33,26,18,0.35);
-    --shadow-soft: 0 1px 2px rgba(33,26,18,0.06), 0 4px 14px rgba(33,26,18,0.06);
-    --bg-buildings-light: url("data:image/png;base64,__BUILDINGS_LIGHT_B64__");
-    --bg-buildings-dark: url("data:image/png;base64,__BUILDINGS_DARK_B64__");
-    --bg-buildings: var(--bg-buildings-light);
-  }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      --bg:#15120D;
-      --surface:#1F1A13;
-      --surface-2:#2A2318;
-      --border:#3A3122;
-      --text:#F3ECDC;
-      --text-2:#B7AA95;
-      --text-3:#847A67;
-      --accent:#5FBFC6;
-      --accent-tint:#233A3C;
-      --accent-ink:#DFF4F5;
-      --ramp-0:#7A5A34;
-      --ramp-1:#96541F;
-      --ramp-2:#B5641E;
-      --ramp-3:#D9762A;
-      --ramp-4:#EF6B3D;
-      --ramp-5:#FF8A5C;
-      --marker-edge: rgba(243,236,220,0.3);
-      --shadow-soft: 0 1px 2px rgba(0,0,0,0.3), 0 4px 18px rgba(0,0,0,0.35);
-      --bg-buildings: var(--bg-buildings-dark);
-    }
-  }
-  :root[data-theme="dark"]{
-    --bg:#15120D;
-    --surface:#1F1A13;
-    --surface-2:#2A2318;
-    --border:#3A3122;
-    --text:#F3ECDC;
-    --text-2:#B7AA95;
-    --text-3:#847A67;
-    --accent:#5FBFC6;
-    --accent-tint:#233A3C;
-    --accent-ink:#DFF4F5;
-    --ramp-0:#7A5A34;
-    --ramp-1:#96541F;
-    --ramp-2:#B5641E;
-    --ramp-3:#D9762A;
-    --ramp-4:#EF6B3D;
-    --ramp-5:#FF8A5C;
-    --marker-edge: rgba(243,236,220,0.3);
-    --shadow-soft: 0 1px 2px rgba(0,0,0,0.3), 0 4px 18px rgba(0,0,0,0.35);
-    --bg-buildings: var(--bg-buildings-dark);
+    --marker-edge: rgba(26,26,26,0.35);
+    --shadow-soft: none;
+    --bg-buildings: url("data:image/png;base64,__BUILDINGS_B64__");
+    --font-sans: system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    --font-mono: ui-monospace,SFMono-Regular,"SF Mono",Consolas,monospace;
   }
 
   *{box-sizing:border-box;}
   body{
     margin:0; background:var(--bg); color:var(--text);
-    font-family:"IBM Plex Sans", system-ui, sans-serif;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
     padding: 28px 20px 48px;
   }
   .wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:22px;}
 
   header{display:flex; flex-direction:column; gap:6px;}
   .eyebrow{
-    font-family:"IBM Plex Mono", monospace; font-size:12px; letter-spacing:0.08em;
+    font-family:var(--font-mono); font-size:12px; letter-spacing:0.08em;
     text-transform:uppercase; color:var(--accent); font-weight:600;
   }
   h1{
@@ -99,7 +54,7 @@
     padding:14px 16px; display:flex; flex-direction:column; gap:4px;
   }
   .stat .n{
-    font-family:"IBM Plex Mono", monospace; font-variant-numeric:tabular-nums;
+    font-family:var(--font-mono); font-variant-numeric:tabular-nums;
     font-size:24px; font-weight:600; color:var(--text);
   }
   .stat .l{font-size:12.5px; color:var(--text-2); line-height:1.3;}
@@ -113,7 +68,7 @@
   .controls .label{font-size:12.5px; color:var(--text-2); font-weight:500;}
   .segmented{display:flex; flex-wrap:wrap; gap:4px; background:var(--surface-2); padding:4px; border-radius:9px;}
   .segmented button{
-    font-family:"IBM Plex Mono", monospace; font-size:12.5px; font-weight:500;
+    font-family:var(--font-mono); font-size:12.5px; font-weight:500;
     border:none; background:transparent; color:var(--text-2); padding:6px 11px;
     border-radius:6px; cursor:pointer;
   }
@@ -148,34 +103,24 @@
   #sun-compass{display:block; margin:0 auto 6px;}
   #sun-compass .ring{fill:none; stroke:var(--border);}
   #sun-compass .path{fill:none; stroke:var(--marker-edge); stroke-width:1; stroke-dasharray:2 2;}
-  #sun-compass .cardinal{font-family:"IBM Plex Mono",monospace; font-size:8px; fill:var(--text-3);}
+  #sun-compass .cardinal{font-family:var(--font-mono); font-size:8px; fill:var(--text-3);}
   #sun-compass .sun{fill:#F2B84B; stroke:var(--surface); stroke-width:1.5;}
   #sun-compass .sun-dim{fill:var(--border);}
   .ramp-strip{display:flex; height:14px; border-radius:4px; overflow:hidden; border:1px solid var(--border);}
   .ramp-strip span{flex:1;}
-  .ramp-labels{display:flex; justify-content:space-between; font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--text-3);}
+  .ramp-labels{display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:11px; color:var(--text-3);}
   .legend-note{font-size:12.5px; color:var(--text-2); line-height:1.5;}
   .shelter-key{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-2);}
   .shelter-square{width:10px; height:10px; background:var(--ramp-3); border:1px solid var(--marker-edge); transform:rotate(45deg); flex:0 0 auto;}
 
   #tooltip{
     position:fixed; pointer-events:none; z-index:50; background:var(--text); color:var(--bg);
-    font-family:"IBM Plex Mono", monospace; font-size:12px; padding:8px 10px; border-radius:7px;
+    font-family:var(--font-mono); font-size:12px; padding:8px 10px; border-radius:7px;
     line-height:1.5; box-shadow:var(--shadow-soft); max-width:240px; opacity:0; transform:translateY(4px);
     transition:opacity .1s ease;
   }
   #tooltip.show{opacity:1;}
-  #tooltip b{display:block; font-family:"IBM Plex Sans",sans-serif; font-size:12.5px; margin-bottom:2px;}
-
-  .log{display:flex; flex-direction:column; gap:10px;}
-  .log-item{display:flex; gap:12px; align-items:baseline;}
-  .log-item .tag{
-    font-family:"IBM Plex Mono",monospace; font-size:11px; padding:2px 7px; border-radius:5px;
-    background:var(--accent-tint); color:var(--accent-ink); font-weight:600; white-space:nowrap; flex:0 0 auto;
-  }
-  .log-item .tag.pending{background:var(--surface-2); color:var(--text-3);}
-  .log-item p{margin:0; font-size:13.5px; color:var(--text-2); line-height:1.5;}
-  .log-item p b{color:var(--text); font-weight:600;}
+  #tooltip b{display:block; font-family:var(--font-sans); font-size:12.5px; margin-bottom:2px;}
 
   footer{font-size:12px; color:var(--text-3); text-align:center; padding-top:6px;}
 
@@ -187,7 +132,7 @@
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">gtfs-valencia-dbt &middot; branch milan-heat-exposure</div>
+    <div class="eyebrow">Transit Heat Exposure &middot; Milano</div>
     <h1>Milan Heat Exposure</h1>
     <p class="lede">2,931 bus stops, scored for sun exposure during the hottest documented hours of Milan's hottest summer since 1951 &mdash; June 28, 2026, 12:00&ndash;18:00. A stop counts as exposed when it has no building shadow and no shelter.</p>
   </header>
@@ -240,7 +185,7 @@
   <div class="panel">
     <div class="section-head">
       <h2>Wait time by stop</h2>
-      <p class="lede-small">Median expected wait per stop, per hour &mdash; headway between scheduled departures on the SAME line, halved, then the median across every line serving that stop (not a combined-schedule shortcut). Sunday Sept 13, 2026: a day-type stand-in for June 28 (the ATM feed doesn't reach back that far &mdash; see build log). A separate dataset from the map above (GTFS stop IDs, not OSM), so it's kept as its own map rather than merged in.</p>
+      <p class="lede-small">Median expected wait per stop, per hour &mdash; headway between scheduled departures on the SAME line, halved, then the median across every line serving that stop (not a combined-schedule shortcut). Sunday Sept 13, 2026: a day-type stand-in for June 28 (the ATM feed doesn't reach back that far). A separate dataset from the map above (4,192 GTFS stops vs. 2,931 OSM stops) &mdash; the two are joined in the dbt layer (mart_stop_heat_wait), not in this map, so each is shown on its own projection here.</p>
     </div>
     <div class="controls">
       <span class="label">Hour</span>
@@ -262,11 +207,6 @@
     </div>
   </div>
 
-  <div class="panel">
-    <h3 style="margin:0 0 12px; font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-2); font-weight:600;">Build log</h3>
-    <div class="log" id="build-log"></div>
-  </div>
-
   <footer>Data: ATM Milano GTFS &middot; Copernicus Urban Atlas Building Height 2012 &middot; OpenStreetMap &middot; ARPA Lombardia. Built with AI assistance (Claude); modeling choices are the project owner's.</footer>
 </div>
 
@@ -286,32 +226,18 @@ const WEATHER_STATIONS = [
   {id:8162, name:'Milano v.Feltre',      lo:9.24873853, la:45.49163461, pctOver30:22.6},
 ];
 
-const BUILD_LOG = [
-  {tag:'done', label:'Data sourcing', text:'GTFS (ATM), building height (Copernicus Urban Atlas), OSM shelter tags, ARPA Lombardia hourly temperatures &mdash; all validated, see docs/MILAN_DATA_DECISIONS.md.'},
-  {tag:'done', label:'Critical window', text:'Derived empirically from real station data: 12:00&ndash;18:00, June 28 2026 (hottest day, 69-day heat streak found).'},
-  {tag:'done', label:'Solar exposure script', text:'Raster shadow march + shelter tag, tested (7 pytest passing), error margin computed per hour, not asserted.'},
-  {tag:'done', label:'Map: heatmap + weather stations', text:'Point/heatmap toggle to spot hot zones, and the 6 ARPA stations plotted so the temperature source is checkable, not just cited.'},
-  {tag:'done', label:'Map backdrop', text:'No live basemap is reachable from a published artifact (tile servers are blocked by design) &mdash; so the backdrop is the project\u2019s own Copernicus building-height raster, rendered once and embedded, instead of a decorative placeholder.'},
-  {tag:'done', label:'Wait time by stop', text:'A second, independent map: median wait per line then per stop (headway/2), for a representative Sunday since the current ATM feed doesn\u2019t reach back to June 28. Kept separate from the exposure map above &mdash; different dataset (GTFS stop IDs, not OSM), different question.'},
-  {tag:'now', label:'This map', text:'Visual check of the exposure output while the dbt layer gets built.'},
-  {tag:'pending', label:'dbt models', text:'stg_stop_solar_exposure, int_stop_wait_time, mart_stop_heat_risk &mdash; joining this seed into the existing star schema.'},
-  {tag:'pending', label:'Public README', text:'Problem / approach / trade-offs for the Milan branch, mirroring the Valencia repo template.'},
-];
-
-const RAMP = ['var(--ramp-0)','var(--ramp-1)','var(--ramp-2)','var(--ramp-3)','var(--ramp-4)','var(--ramp-5)'];
+const RAMP =['var(--ramp-0)','var(--ramp-1)','var(--ramp-2)','var(--ramp-3)','var(--ramp-4)','var(--ramp-5)'];
 const RAMP_HEX_LIGHT = ['#FFF3D6','#FFD48A','#FFA149','#F06430','#C93A1E','#7A1B0E'];
-const RAMP_HEX_DARK  = ['#7A5A34','#96541F','#B5641E','#D9762A','#EF6B3D','#FF8A5C'];
 
 // Wait-time ramp: light blue -> violet, per the project owner's own request.
 // Still a magnitude scale (0..25+ min), so lightness still runs monotonic
 // light-to-dark even while the hue sweeps -- not a diverging pair, there's
 // no meaningful "zero point" to diverge around.
 const WAIT_RAMP_LIGHT = ['#E3EEFA','#A9C3E8','#7E9CD6','#8A7AC4','#6B4E9E','#4A2F73'];
-const WAIT_RAMP_DARK  = ['#20304A','#33456E','#4A5590','#5F5296','#7A5BA8','#A06FD1'];
 const WAIT_CAP_MIN = 25;
 
 function waitRampColor(t){
-  const stops = isDark() ? WAIT_RAMP_DARK : WAIT_RAMP_LIGHT;
+  const stops = WAIT_RAMP_LIGHT;
   t = Math.max(0, Math.min(1, t));
   const scaled = t * (stops.length - 1);
   const i = Math.floor(scaled);
@@ -321,18 +247,11 @@ function waitRampColor(t){
   return rgbToHex(lerp(c0[0],c1[0],frac), lerp(c0[1],c1[1],frac), lerp(c0[2],c1[2],frac));
 }
 
-function isDark(){
-  const t = document.documentElement.getAttribute('data-theme');
-  if (t === 'dark') return true;
-  if (t === 'light') return false;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
-
 function lerp(a,b,t){ return Math.round(a + (b-a)*t); }
 function hexToRgb(h){ h=h.replace('#',''); return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]; }
 function rgbToHex(r,g,b){ return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join(''); }
 function rampColor(t){
-  const stops = isDark() ? RAMP_HEX_DARK : RAMP_HEX_LIGHT;
+  const stops = RAMP_HEX_LIGHT;
   t = Math.max(0, Math.min(1, t));
   const scaled = t * (stops.length - 1);
   const i = Math.floor(scaled);
@@ -820,7 +739,6 @@ function renderWaitRampStrip(){
 }
 renderWaitRampStrip();
 renderWaitMap();
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{ renderWaitRampStrip(); renderWaitMap(); });
 
 // ---- stats ----
 const total = DATA.length;
@@ -841,19 +759,10 @@ stats.forEach(s=>{
   statsEl.appendChild(d);
 });
 
-// ---- build log ----
-const logEl = document.getElementById('build-log');
-BUILD_LOG.forEach(item=>{
-  const row = document.createElement('div'); row.className='log-item';
-  row.innerHTML = `<span class="tag ${item.tag==='pending'?'pending':''}">${item.tag==='pending'?'next':item.tag==='now'?'now':'done'}</span><p><b>${item.label}.</b> ${item.text}</p>`;
-  logEl.appendChild(row);
-});
-
 updateLegend();
 renderRampStrip();
 renderSunCompass();
 renderCurrentDisplay();
 
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{ renderRampStrip(); renderCurrentDisplay(); });
 window.addEventListener('resize', ()=>{ if (display==='heatmap' || display==='grid') renderHeatmapCanvas(display==='grid'); });
 </script>

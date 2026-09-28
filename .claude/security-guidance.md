@@ -16,4 +16,4 @@ Letto dal security-reviewer. Le regole generali valgono per ogni progetto; le sp
 - Solo open data di terze parti (GTFS, Copernicus, OSM, ARPA): ogni nuova fonte va citata con licenza nel `docs/*_DATA_DECISIONS.md` della città.
 - I feed GTFS grezzi (`data/raw/`, `data_milan/raw/`) e `gtfs.duckdb` non si versionano.
 - Nei seed e negli export OSM niente campi di contatto (email, telefono) oltre quelli strettamente necessari all'analisi.
-- La mappa è un HTML autocontenuto: nessuna tile o script da server esterni; unica eccezione attuale i font da Google Fonts in `template.html`.
+- La mappa è un HTML autocontenuto: nessuna tile, script o font da server esterni (font di sistema).

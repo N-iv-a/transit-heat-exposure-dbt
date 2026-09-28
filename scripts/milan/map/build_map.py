@@ -2,8 +2,8 @@
 generated data files. Run the three prepare/render scripts first (or `make`
 -- see README.md in this folder).
 
-Output is a single HTML file with everything inlined (data, both backdrop
-images as base64) -- no build step or server needed to view it, and nothing
+Output is a single HTML file with everything inlined (data, the backdrop
+image as base64) -- no build step or server needed to view it, and nothing
 it depends on lives outside this one file.
 """
 
@@ -21,8 +21,7 @@ PLACEHOLDERS = {
 }
 
 IMAGE_PLACEHOLDERS = {
-    "__BUILDINGS_LIGHT_B64__": DATA_DIR / "buildings_light.png",
-    "__BUILDINGS_DARK_B64__": DATA_DIR / "buildings_dark.png",
+    "__BUILDINGS_B64__": DATA_DIR / "buildings.png",
 }
 
 
