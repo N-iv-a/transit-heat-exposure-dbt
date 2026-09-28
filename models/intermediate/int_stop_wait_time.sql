@@ -7,8 +7,9 @@
   map -- see docs/MILAN_DATA_DECISIONS.md, section 7).
 
   stop_id here is a GTFS stop_id, a different ID space from
-  stg_stop_solar_exposure's OSM node ids. No join between the two is
-  attempted at this or any later layer -- see mart_stop_heat_risk.sql.
+  stg_stop_solar_exposure's OSM node ids. mart_stop_heat_risk still doesn't
+  join the two -- see that model -- but int_osm_gtfs_stop_bridge.sql now
+  bridges them for mart_stop_heat_wait.
 #}
 
 select

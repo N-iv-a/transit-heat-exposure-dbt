@@ -15,3 +15,4 @@ Modellare feed GTFS reali in uno star schema testato (dbt + DuckDB), una città 
 
 ## Contratto
 Nessun contratto formale in `contract/`. La mappa (`scripts/milan/map/`) legge i seed `data_milan/seeds/stop_solar_exposure.csv`, `stop_wait_time.csv` e l'export OSM: cambiarne le colonne è una modifica di contratto.
+Fermate OSM (esposizione) e GTFS (attesa) sono collegate in dbt da `int_osm_gtfs_stop_bridge` (prima `ref` OSM, poi fermata più vicina entro 30 m); vista combinata in `mart_stop_heat_wait`.

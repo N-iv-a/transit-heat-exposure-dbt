@@ -17,6 +17,35 @@ DB_PATH = PROJECT_ROOT / "gtfs.duckdb"
 
 FILES = ["stop_solar_exposure", "stop_wait_time"]
 
+OSM_SHELTER_PATH = SEEDS_DIR / "osm_shelter" / "export_shelter_milano.geojson"
+
+
+def _load_osm_shelter_stops(con: duckdb.DuckDBPyConnection, schema: str) -> None:
+    if not OSM_SHELTER_PATH.exists():
+        raise FileNotFoundError(f"Missing {OSM_SHELTER_PATH}")
+    # GeoJSON FeatureCollection: one row per feature after unnesting.
+    # ref/name are cast to VARCHAR -- ref is not always numeric (e.g. GTFS's
+    # own "ABBIATEGRASSO" stop_id, see stop_wait_time.csv). geometry.coordinates
+    # is [lon, lat] per the GeoJSON spec; DuckDB list indexing is 1-based, so
+    # coordinates[1] is lon and coordinates[2] is lat.
+    con.execute(
+        f"""
+        create or replace table {schema}.osm_shelter_stops as
+        select
+            f.id as osm_node_id,
+            cast(f.properties.ref as varchar) as ref,
+            cast(f.properties.name as varchar) as name,
+            cast(f.geometry.coordinates[1] as double) as lon,
+            cast(f.geometry.coordinates[2] as double) as lat
+        from (
+            select unnest(features) as f
+            from read_json_auto('{OSM_SHELTER_PATH}')
+        )
+        """
+    )
+    n = con.execute(f"select count(*) from {schema}.osm_shelter_stops").fetchone()[0]
+    print(f"{schema}.osm_shelter_stops: {n} rows")
+
 
 def main() -> None:
     con = duckdb.connect(str(DB_PATH))
@@ -39,6 +68,7 @@ def main() -> None:
         )
         n = con.execute(f"select count(*) from {schema}.{name}").fetchone()[0]
         print(f"{schema}.{name}: {n} rows")
+    _load_osm_shelter_stops(con, schema)
     con.close()
 
 

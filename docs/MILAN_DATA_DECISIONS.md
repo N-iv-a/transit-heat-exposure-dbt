@@ -295,13 +295,14 @@ cheaper combined-schedule shortcut):**
 **Sanity check:** Duomo M1/M3 (a major two-line interchange) comes out to
 7–9 minutes across the afternoon — right for Sunday metro frequency.
 
-**Known gap, same shape as the shelter/shadow ID mismatch:** GTFS `stop_id`
-and the OSM node ids used for the exposure map are two different ID spaces
-with no shared key, and no join was attempted — this map plots GTFS's own
-4,192 stops (metro, tram, bus) at GTFS's own coordinates, independently of
-the 2,931 OSM stops in the exposure map. Reconciling them (nearest-point
-match) is a fair next step if the two are ever meant to be read together,
-not assumed here.
+**ID-space gap, now bridged in dbt:** GTFS `stop_id` and the OSM node ids
+used for the exposure map are two different ID spaces — this map still
+plots GTFS's own 4,192 stops (metro, tram, bus) at GTFS's own coordinates,
+independently of the 2,931 OSM stops in the exposure map. The two are
+reconciled in the dbt layer (`int_osm_gtfs_stop_bridge`, §8), not here.
+Nearest-point alone turned out to be the weaker key: most OSM stops carry
+a `ref` tag equal to ATM's GTFS `stop_id`, and nearest-point agrees with it
+only ~92% of the time, so `ref` comes first and proximity is the fallback.
 
 **Visualization:** blue-to-violet sequential ramp (the project owner's
 request), capped at 25 minutes for color purposes — a handful of
@@ -333,11 +334,22 @@ equivalent to `data/raw/` and no per-agency file list to iterate.
 - `mart_stop_heat_risk` — grain change from `stg_stop_solar_exposure`
   (stop × hour) to stop: `hours_exposed`, `pct_hours_exposed`, and a
   `risk_level` flag (`high` = exposed at all 7 hours — the 724-stop
-  actionable finding from §6). Deliberately does not join
-  `int_stop_wait_time` in: the two models key off different ID spaces
-  (OSM node id vs. GTFS `stop_id`), so heat risk and wait time stay two
-  separate marts, matching the two separate maps, rather than forcing a
-  join that would silently drop or duplicate rows.
+  actionable finding from §6). Kept exposure-only on purpose; the join
+  with wait time lives in the two models below.
+- `int_osm_gtfs_stop_bridge` — one row per OSM stop (from the OSM export,
+  loaded as `raw_milan.osm_shelter_stops`). `match_method`: `ref` when the
+  OSM `ref` tag equals a GTFS `stop_id` within 200 m (sanity cap against
+  stale tags); otherwise `nearest` = closest GTFS stop within 30 m (tie-break
+  on `stop_id`); otherwise `unmatched`. Distances are haversine in plain SQL
+  (`macros/haversine_distance_m.sql`, no spatial extension). Result:
+  2,466 `ref` (median 8.6 m), 125 `nearest` (median 14.1 m), 340
+  `unmatched`.
+- `mart_stop_heat_wait` — `mart_stop_heat_risk` + bridge + wait time, per
+  OSM stop. `avg_exposed_wait_minutes` = mean over the 7 hours of (exposed
+  ? median wait 12–18 : 0): average minutes a passenger waits in the sun.
+  `high`-risk stops average ~9.9 min (p90 12). Caveat, declared: exposure
+  is computed for June 28, wait time for the September 13 reference day —
+  two different days, read as a v1 approximation, not a same-day measure.
 - Tests: `not_null`/`accepted_values` on hour and bucket/risk columns, plus
   a singular uniqueness test (`assert_stg_stop_solar_exposure_unique_node_hour.sql`,
   mirroring `assert_fct_trips_unique_trip_date.sql`'s pattern) and

@@ -10,11 +10,11 @@
   investment, as opposed to stops exposed only part of the window.
 
   Deliberately does not bring in int_stop_wait_time: that model keys off
-  GTFS stop_id, this one off OSM node id, and no join between the two ID
-  spaces is attempted anywhere in this project (see
-  docs/MILAN_DATA_DECISIONS.md, section 7, and int_stop_wait_time.sql).
-  Heat risk (this mart) and wait time (int_stop_wait_time) stay two
-  separate signals, read as two separate maps, not one combined score.
+  GTFS stop_id, this one off OSM node id. A bridge between the two ID
+  spaces now exists (int_osm_gtfs_stop_bridge.sql, used by
+  mart_stop_heat_wait.sql), but this mart is kept as-is by choice: heat
+  risk (this mart) and wait time (int_stop_wait_time) stay two separate
+  signals, read as two separate maps, not one combined score.
 #}
 
 select

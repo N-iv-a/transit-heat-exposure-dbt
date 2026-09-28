@@ -21,5 +21,12 @@ sources:
           One row per (GTFS stop_id, hour), median expected wait time
           (headway/2, per-line-then-median across lines) for the reference
           day 2026-09-13. stop_id here is a GTFS stop_id, a different ID
-          space from stop_solar_exposure's OSM node ids -- no join between
-          the two is attempted (see docs/MILAN_DATA_DECISIONS.md, section 7).
+          space from stop_solar_exposure's OSM node ids -- see
+          int_osm_gtfs_stop_bridge.sql for the bridge between the two.
+      - name: osm_shelter_stops
+        description: >
+          One row per OSM public-transport stop node in Milan (from
+          data_milan/seeds/osm_shelter/export_shelter_milano.geojson, an
+          Overpass export), keyed by osm_node_id ("node/12345"). ref is the
+          OSM tag meant to mirror the GTFS stop_id, when mapped; not always
+          present or accurate -- see int_osm_gtfs_stop_bridge.sql.

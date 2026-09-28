@@ -12,3 +12,20 @@ models:
           - accepted_values:
               arguments:
                 values: ["low", "medium", "high"]
+
+  - name: mart_stop_heat_wait
+    columns:
+      - name: osm_node_id
+        tests:
+          - unique
+          - not_null
+      - name: risk_level
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["low", "medium", "high"]
+      - name: match_method
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["ref", "nearest", "unmatched"]
