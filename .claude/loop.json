@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "profile": "standard",
+  "mode": "fullstack",
+  "overrides": {},
+
+  "profiles": {
+    "eco": {
+      "plan": "inline", "lint": "off", "build": "off", "test": "script",
+      "e2e": "off", "docs": "off", "gate": "scan", "secrets": "regex",
+      "models": { "planner": "sonnet", "dev": "sonnet", "tester": "haiku", "reviewer": "sonnet" }
+    },
+    "standard": {
+      "plan": "auto", "lint": "on", "build": "on", "test": "script",
+      "e2e": "smoke", "docs": "touched", "gate": "lite", "secrets": "auto",
+      "models": { "planner": "sonnet", "dev": "sonnet", "tester": "haiku", "reviewer": "sonnet" }
+    },
+    "strict": {
+      "plan": "agent", "lint": "on", "build": "on", "test": "agent",
+      "e2e": "full", "docs": "full", "gate": "full", "secrets": "full",
+      "models": { "planner": "opus", "dev": "sonnet", "tester": "sonnet", "reviewer": "opus" }
+    }
+  },
+
+  "levels": {
+    "plan":    ["inline", "auto", "agent"],
+    "lint":    ["off", "on"],
+    "build":   ["off", "on"],
+    "test":    ["off", "script", "agent"],
+    "e2e":     ["off", "smoke", "full"],
+    "docs":    ["off", "touched", "full"],
+    "gate":    ["scan", "lite", "full"],
+    "secrets": ["regex", "auto", "full"],
+    "models":  ["haiku", "sonnet", "opus", "inherit"]
+  },
+
+  "paths": {
+    "backend":  ["models/", "tests/", "macros/", "ingestion/",
+                 "scripts/milan/solar_exposure.py", "scripts/milan/wait_time.py",
+                 "scripts/milan/test_solar_exposure.py"],
+    "frontend": ["scripts/milan/map/"],
+    "contract": ["contract/"],
+    "build_output": "scripts/milan/map/dist/"
+  },
+
+  "commands": {
+    "backend": {
+      "lint":  "dbt parse --profiles-dir . && python3 -m py_compile ingestion/*.py scripts/milan/*.py",
+      "build": "dbt compile --profiles-dir .",
+      "test":  "python3 -m pytest -q scripts/milan && bash scripts/dbt-build-if-data.sh"
+    },
+    "frontend": {
+      "lint":  "python3 -m py_compile scripts/milan/map/*.py",
+      "build": "cd scripts/milan/map && python3 prepare_exposure_data.py && python3 prepare_wait_data.py && python3 render_building_backdrop.py && python3 build_map.py",
+      "test":  "test -s scripts/milan/map/dist/milan_heat_map.html && ! grep -qE \"__[A-Z_]+__\" scripts/milan/map/dist/milan_heat_map.html",
+      "e2e_smoke": "",
+      "e2e_full": ""
+    }
+  },
+
+  "docs": { "source": "docs/spec.md" },
+  "git":  { "base": "main", "push": true },
+  "limits": { "dev_retries": 2, "log_tail_lines": 40 }
+}

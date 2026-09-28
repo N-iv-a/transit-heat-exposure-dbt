@@ -1,0 +1,22 @@
+{
+  "patterns": [
+    { "name": "chiave-anthropic", "regex": "sk-ant-[A-Za-z0-9_-]{20,}" },
+    { "name": "chiave-privata",   "regex": "-----BEGIN [A-Z ]*PRIVATE KEY-----" },
+    { "name": "token-github",     "regex": "gh[pousr]_[A-Za-z0-9]{30,}" },
+    { "name": "chiave-aws",       "regex": "AKIA[0-9A-Z]{16}" },
+    { "name": "email",            "regex": "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}" },
+    { "name": "telefono-it",      "regex": "(\\+39|0039)[ .-]?[0-9]{2,4}[ .-]?[0-9]{5,8}|\\b3[0-9]{2}[ .-][0-9]{3}[ .-]?[0-9]{3,4}\\b" },
+    { "name": "iban-it",          "regex": "\\bIT[0-9]{2}( ?[A-Z0-9]{4}){5} ?[A-Z0-9]{3}\\b", "icase": true },
+    { "name": "codice-fiscale",   "regex": "\\b[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]\\b", "icase": true }
+  ],
+  "allowlist": [
+    "[A-Za-z0-9._%+-]+@example\\.(com|org|net|it)",
+    "[A-Za-z0-9._%+-]+@users\\.noreply\\.github\\.com",
+    "noreply@anthropic\\.com",
+    "RSSMRA85T10A562S"
+  ],
+  "ignore_paths": [
+    "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "poetry.lock", "uv.lock",
+    ".claude/security-patterns.json", "scripts/tests/"
+  ]
+}
