@@ -17,3 +17,15 @@ models:
           - accepted_values:
               arguments:
                 values: ["low", "medium", "high"]
+
+  - name: int_osm_gtfs_stop_bridge
+    columns:
+      - name: osm_node_id
+        tests:
+          - unique
+          - not_null
+      - name: match_method
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["ref", "nearest", "unmatched"]

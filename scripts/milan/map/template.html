@@ -1,14 +1,14 @@
+<meta charset="utf-8">
 <title>Milan Heat Exposure</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
   :root{
-    --bg:#FAF6EE;
+    --bg:#FFFFFF;
     --surface:#FFFFFF;
-    --surface-2:#F3ECDC;
-    --border:#E7DCC6;
-    --text:#211A12;
-    --text-2:#6E6252;
-    --text-3:#9A8E7A;
+    --surface-2:#F5F5F5;
+    --border:#E2E2E2;
+    --text:#1A1A1A;
+    --text-2:#595959;
+    --text-3:#6B6B6B;
     --accent:#1D5C63;
     --accent-tint:#E4EFEE;
     --accent-ink:#0F3438;
@@ -18,68 +18,24 @@
     --ramp-3:#F06430;
     --ramp-4:#C93A1E;
     --ramp-5:#7A1B0E;
-    --marker-edge: rgba(33,26,18,0.35);
-    --shadow-soft: 0 1px 2px rgba(33,26,18,0.06), 0 4px 14px rgba(33,26,18,0.06);
-    --bg-buildings-light: url("data:image/png;base64,__BUILDINGS_LIGHT_B64__");
-    --bg-buildings-dark: url("data:image/png;base64,__BUILDINGS_DARK_B64__");
-    --bg-buildings: var(--bg-buildings-light);
-  }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      --bg:#15120D;
-      --surface:#1F1A13;
-      --surface-2:#2A2318;
-      --border:#3A3122;
-      --text:#F3ECDC;
-      --text-2:#B7AA95;
-      --text-3:#847A67;
-      --accent:#5FBFC6;
-      --accent-tint:#233A3C;
-      --accent-ink:#DFF4F5;
-      --ramp-0:#7A5A34;
-      --ramp-1:#96541F;
-      --ramp-2:#B5641E;
-      --ramp-3:#D9762A;
-      --ramp-4:#EF6B3D;
-      --ramp-5:#FF8A5C;
-      --marker-edge: rgba(243,236,220,0.3);
-      --shadow-soft: 0 1px 2px rgba(0,0,0,0.3), 0 4px 18px rgba(0,0,0,0.35);
-      --bg-buildings: var(--bg-buildings-dark);
-    }
-  }
-  :root[data-theme="dark"]{
-    --bg:#15120D;
-    --surface:#1F1A13;
-    --surface-2:#2A2318;
-    --border:#3A3122;
-    --text:#F3ECDC;
-    --text-2:#B7AA95;
-    --text-3:#847A67;
-    --accent:#5FBFC6;
-    --accent-tint:#233A3C;
-    --accent-ink:#DFF4F5;
-    --ramp-0:#7A5A34;
-    --ramp-1:#96541F;
-    --ramp-2:#B5641E;
-    --ramp-3:#D9762A;
-    --ramp-4:#EF6B3D;
-    --ramp-5:#FF8A5C;
-    --marker-edge: rgba(243,236,220,0.3);
-    --shadow-soft: 0 1px 2px rgba(0,0,0,0.3), 0 4px 18px rgba(0,0,0,0.35);
-    --bg-buildings: var(--bg-buildings-dark);
+    --marker-edge: rgba(26,26,26,0.35);
+    --shadow-soft: none;
+    --bg-buildings: url("data:image/png;base64,__BUILDINGS_B64__");
+    --font-sans: system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    --font-mono: ui-monospace,SFMono-Regular,"SF Mono",Consolas,monospace;
   }
 
   *{box-sizing:border-box;}
   body{
     margin:0; background:var(--bg); color:var(--text);
-    font-family:"IBM Plex Sans", system-ui, sans-serif;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
     padding: 28px 20px 48px;
   }
   .wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:22px;}
 
   header{display:flex; flex-direction:column; gap:6px;}
   .eyebrow{
-    font-family:"IBM Plex Mono", monospace; font-size:12px; letter-spacing:0.08em;
+    font-family:var(--font-mono); font-size:12px; letter-spacing:0.08em;
     text-transform:uppercase; color:var(--accent); font-weight:600;
   }
   h1{
@@ -99,7 +55,7 @@
     padding:14px 16px; display:flex; flex-direction:column; gap:4px;
   }
   .stat .n{
-    font-family:"IBM Plex Mono", monospace; font-variant-numeric:tabular-nums;
+    font-family:var(--font-mono); font-variant-numeric:tabular-nums;
     font-size:24px; font-weight:600; color:var(--text);
   }
   .stat .l{font-size:12.5px; color:var(--text-2); line-height:1.3;}
@@ -113,7 +69,7 @@
   .controls .label{font-size:12.5px; color:var(--text-2); font-weight:500;}
   .segmented{display:flex; flex-wrap:wrap; gap:4px; background:var(--surface-2); padding:4px; border-radius:9px;}
   .segmented button{
-    font-family:"IBM Plex Mono", monospace; font-size:12.5px; font-weight:500;
+    font-family:var(--font-mono); font-size:12.5px; font-weight:500;
     border:none; background:transparent; color:var(--text-2); padding:6px 11px;
     border-radius:6px; cursor:pointer;
   }
@@ -140,6 +96,12 @@
   .stations-toggle{display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--text-2); margin-left:auto; cursor:pointer;}
   .stations-toggle input{accent-color:var(--accent);}
   .station-dot{width:10px; height:10px; flex:0 0 auto; background:var(--surface); border:2px solid var(--accent); transform:rotate(45deg); display:inline-block;}
+  .grey-dot{width:10px; height:10px; flex:0 0 auto; border-radius:50%; background:#9AA0A3; display:inline-block;}
+
+  .view-panel{display:flex; flex-direction:column; gap:14px;}
+  #deck-holder{height:520px; position:relative;}
+  #deck-container{position:absolute; inset:0;}
+  @media (max-width:640px){ #deck-holder{height:380px;} }
 
   .legend{
     flex:0 0 200px; display:flex; flex-direction:column; gap:14px;
@@ -148,34 +110,24 @@
   #sun-compass{display:block; margin:0 auto 6px;}
   #sun-compass .ring{fill:none; stroke:var(--border);}
   #sun-compass .path{fill:none; stroke:var(--marker-edge); stroke-width:1; stroke-dasharray:2 2;}
-  #sun-compass .cardinal{font-family:"IBM Plex Mono",monospace; font-size:8px; fill:var(--text-3);}
+  #sun-compass .cardinal{font-family:var(--font-mono); font-size:8px; fill:var(--text-3);}
   #sun-compass .sun{fill:#F2B84B; stroke:var(--surface); stroke-width:1.5;}
   #sun-compass .sun-dim{fill:var(--border);}
   .ramp-strip{display:flex; height:14px; border-radius:4px; overflow:hidden; border:1px solid var(--border);}
   .ramp-strip span{flex:1;}
-  .ramp-labels{display:flex; justify-content:space-between; font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--text-3);}
+  .ramp-labels{display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:11px; color:var(--text-3);}
   .legend-note{font-size:12.5px; color:var(--text-2); line-height:1.5;}
   .shelter-key{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-2);}
   .shelter-square{width:10px; height:10px; background:var(--ramp-3); border:1px solid var(--marker-edge); transform:rotate(45deg); flex:0 0 auto;}
 
   #tooltip{
     position:fixed; pointer-events:none; z-index:50; background:var(--text); color:var(--bg);
-    font-family:"IBM Plex Mono", monospace; font-size:12px; padding:8px 10px; border-radius:7px;
+    font-family:var(--font-mono); font-size:12px; padding:8px 10px; border-radius:7px;
     line-height:1.5; box-shadow:var(--shadow-soft); max-width:240px; opacity:0; transform:translateY(4px);
     transition:opacity .1s ease;
   }
   #tooltip.show{opacity:1;}
-  #tooltip b{display:block; font-family:"IBM Plex Sans",sans-serif; font-size:12.5px; margin-bottom:2px;}
-
-  .log{display:flex; flex-direction:column; gap:10px;}
-  .log-item{display:flex; gap:12px; align-items:baseline;}
-  .log-item .tag{
-    font-family:"IBM Plex Mono",monospace; font-size:11px; padding:2px 7px; border-radius:5px;
-    background:var(--accent-tint); color:var(--accent-ink); font-weight:600; white-space:nowrap; flex:0 0 auto;
-  }
-  .log-item .tag.pending{background:var(--surface-2); color:var(--text-3);}
-  .log-item p{margin:0; font-size:13.5px; color:var(--text-2); line-height:1.5;}
-  .log-item p b{color:var(--text); font-weight:600;}
+  #tooltip b{display:block; font-family:var(--font-sans); font-size:12.5px; margin-bottom:2px;}
 
   footer{font-size:12px; color:var(--text-3); text-align:center; padding-top:6px;}
 
@@ -187,84 +139,102 @@
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">gtfs-valencia-dbt &middot; branch milan-heat-exposure</div>
+    <div class="eyebrow">Transit Heat Exposure &middot; Milano</div>
     <h1>Milan Heat Exposure</h1>
-    <p class="lede">2,931 bus stops, scored for sun exposure during the hottest documented hours of Milan's hottest summer since 1951 &mdash; June 28, 2026, 12:00&ndash;18:00. A stop counts as exposed when it has no building shadow and no shelter.</p>
+    <p class="lede">2,931 bus stops, scored for sun exposure during the hottest documented hours of Milan's hottest summer since 1951 &mdash; June 28, 2026, 12:00&ndash;18:00. Exposure score: 0 in building shadow, 0.5 in direct sun with a shelter present (a roof cuts the sun but doesn't cool like real shade), 1 in full sun with no shelter. The main view below crosses this score with how long riders actually wait.</p>
   </header>
 
   <div class="stats" id="stats"></div>
 
   <div class="panel">
     <div class="controls">
-      <span class="label">Hour</span>
-      <div class="segmented" id="mode-buttons"></div>
+      <span class="label">View</span>
+      <div class="segmented" id="view-buttons"></div>
+      <span class="label" style="margin-left:auto">Hour</span>
+      <div class="segmented" id="hour-buttons"></div>
     </div>
-    <div class="controls">
-      <span class="label">Display</span>
-      <div class="segmented" id="display-buttons"></div>
-      <label class="stations-toggle"><input type="checkbox" id="stations-toggle" checked> Show weather stations</label>
-    </div>
-    <div class="map-row">
-      <div class="map-holder" id="map-holder">
-        <svg id="map" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg>
-        <canvas id="heatmap" hidden></canvas>
-      </div>
-      <div class="legend">
-        <div>
-          <h3 id="sun-title">Sun position</h3>
-          <svg id="sun-compass" viewBox="0 0 140 140" width="140" height="140"></svg>
-          <p class="legend-note" id="sun-note"></p>
-        </div>
-        <div>
-          <h3 id="legend-title">Hours exposed</h3>
-          <div class="ramp-strip" id="ramp-strip"></div>
-          <div class="ramp-labels"><span>0</span><span>7</span></div>
-          <p class="legend-note" id="legend-note">Of the 7 hours studied (12:00&ndash;18:00), how many find this stop with no building shadow and no shelter.</p>
-        </div>
-        <div>
-          <h3>Shelter</h3>
-          <div class="shelter-key"><span class="shelter-square"></span> square = stop has a shelter (OSM); circle = it doesn't</div>
-        </div>
-        <div>
-          <h3>Weather source</h3>
-          <div class="shelter-key"><span class="station-dot"></span> ARPA Lombardia station used for the critical-hours analysis &mdash; hover for its own % of readings &gt;30&deg;C</div>
-        </div>
-        <div>
-          <h3>Backdrop</h3>
-          <p class="legend-note">Building footprints from the same Copernicus Urban Atlas raster used for the shadow calculation &mdash; darker = taller. Not a street map (tile servers aren't reachable from a published Claude artifact); this is the project's own data, not a decoration.</p>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <div class="panel">
-    <div class="section-head">
-      <h2>Wait time by stop</h2>
-      <p class="lede-small">Median expected wait per stop, per hour &mdash; headway between scheduled departures on the SAME line, halved, then the median across every line serving that stop (not a combined-schedule shortcut). Sunday Sept 13, 2026: a day-type stand-in for June 28 (the ATM feed doesn't reach back that far &mdash; see build log). A separate dataset from the map above (GTFS stop IDs, not OSM), so it's kept as its own map rather than merged in.</p>
-    </div>
-    <div class="controls">
-      <span class="label">Hour</span>
-      <div class="segmented" id="wait-mode-buttons"></div>
-    </div>
-    <div class="map-row">
-      <div class="map-holder" id="wait-map-holder" style="background-image:none;">
-        <svg id="waitmap" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg>
-      </div>
-      <div class="legend">
-        <div>
-          <h3 id="wait-legend-title">Median wait (min)</h3>
-          <div class="ramp-strip" id="wait-ramp-strip"></div>
-          <div class="ramp-labels"><span>0</span><span>25+</span></div>
-          <p class="legend-note" id="wait-legend-note">Capped at 25 min for color purposes &mdash; a handful of low-frequency stops wait much longer, but letting them set the scale would wash out the difference between everyone else.</p>
+    <div class="view-panel" id="view-panel-main">
+      <p class="lede-small">Each column is a bus/tram stop: its height is the median wait there (capped at 25 min), its color is how exposed to direct sun the stop is in the selected hour(s), from full building shadow to full sun. Stops with no service in the selected hour(s) show as a flat grey point instead of a column.</p>
+      <div class="map-row">
+        <div class="map-holder" id="deck-holder" style="background-image:none;">
+          <div id="deck-container"></div>
         </div>
-        <div class="legend-note">4,192 GTFS stops (metro, tram, bus) &mdash; a larger, differently-sourced set than the 2,931 OSM stops in the exposure map above.</div>
+        <div class="legend">
+          <div>
+            <h3>Column height</h3>
+            <p class="legend-note">Median wait time, capped at 25 min. Flat grey points mark stops with no service in the selected hour(s).</p>
+          </div>
+          <div>
+            <h3>Column color</h3>
+            <div class="ramp-strip" id="main-ramp-strip"></div>
+            <div class="ramp-labels"><span>Shadow</span><span>Sun+shelter</span><span>Full sun</span></div>
+            <p class="legend-note">Exposure score: 0 = building shadow, 0.5 = direct sun with a shelter present, 1 = full sun, no shelter. For the "Average" hour, the score is averaged across 12:00&ndash;18:00.</p>
+          </div>
+          <div class="legend-note"><span class="grey-dot"></span> no service in this hour &mdash; shown at ground level, no column</div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="panel">
-    <h3 style="margin:0 0 12px; font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-2); font-weight:600;">Build log</h3>
-    <div class="log" id="build-log"></div>
+    <div class="view-panel" id="view-panel-exposure" hidden>
+      <div class="controls">
+        <span class="label">Display</span>
+        <div class="segmented" id="display-buttons"></div>
+        <label class="stations-toggle"><input type="checkbox" id="stations-toggle" checked> Show weather stations</label>
+      </div>
+      <div class="map-row">
+        <div class="map-holder" id="map-holder">
+          <svg id="map" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg>
+          <canvas id="heatmap" hidden></canvas>
+        </div>
+        <div class="legend">
+          <div>
+            <h3 id="sun-title">Sun position</h3>
+            <svg id="sun-compass" viewBox="0 0 140 140" width="140" height="140"></svg>
+            <p class="legend-note" id="sun-note"></p>
+          </div>
+          <div>
+            <h3 id="legend-title">Exposure score</h3>
+            <div class="ramp-strip" id="ramp-strip"></div>
+            <div class="ramp-labels" id="exposure-ramp-labels"><span>0</span><span>7</span></div>
+            <p class="legend-note" id="legend-note">Sum of the weighted exposure score (0 shadow, 0.5 sun with shelter, 1 full sun) over the 7 hours studied (12:00&ndash;18:00).</p>
+          </div>
+          <div>
+            <h3>Shelter</h3>
+            <div class="shelter-key"><span class="shelter-square"></span> square = stop has a shelter (OSM); circle = it doesn't</div>
+          </div>
+          <div>
+            <h3>Weather source</h3>
+            <div class="shelter-key"><span class="station-dot"></span> ARPA Lombardia station used for the critical-hours analysis &mdash; hover for its own % of readings &gt;30&deg;C</div>
+          </div>
+          <div>
+            <h3>Backdrop</h3>
+            <p class="legend-note">Building footprints from the same Copernicus Urban Atlas raster used for the shadow calculation &mdash; darker = taller. Not a street map (tile servers aren't reachable from a published Claude artifact); this is the project's own data, not a decoration.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view-panel" id="view-panel-wait" hidden>
+      <div class="section-head">
+        <h2>Wait time by stop</h2>
+        <p class="lede-small">Median expected wait per stop, per hour &mdash; headway between scheduled departures on the SAME line, halved, then the median across every line serving that stop (not a combined-schedule shortcut). Sunday Sept 13, 2026: a day-type stand-in for June 28 (the ATM feed doesn't reach back that far). A separate dataset from the exposure map (4,192 GTFS stops vs. 2,931 OSM stops) &mdash; the two are joined in the dbt layer (mart_stop_heat_wait_hourly), not in this map, so each is shown on its own projection here.</p>
+      </div>
+      <div class="map-row">
+        <div class="map-holder" id="wait-map-holder" style="background-image:none;">
+          <svg id="waitmap" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+        <div class="legend">
+          <div>
+            <h3 id="wait-legend-title">Median wait (min)</h3>
+            <div class="ramp-strip" id="wait-ramp-strip"></div>
+            <div class="ramp-labels"><span>0</span><span>25+</span></div>
+            <p class="legend-note" id="wait-legend-note">Capped at 25 min for color purposes &mdash; a handful of low-frequency stops wait much longer, but letting them set the scale would wash out the difference between everyone else.</p>
+          </div>
+          <div class="legend-note">4,192 GTFS stops (metro, tram, bus) &mdash; a larger, differently-sourced set than the 2,931 OSM stops in the exposure map.</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <footer>Data: ATM Milano GTFS &middot; Copernicus Urban Atlas Building Height 2012 &middot; OpenStreetMap &middot; ARPA Lombardia. Built with AI assistance (Claude); modeling choices are the project owner's.</footer>
@@ -272,10 +242,13 @@
 
 <div id="tooltip"></div>
 
+<script>__DECKGL_JS__</script>
 <script>
 const DATA = __DATA_JSON__;
 const ROADS = __ROADS_JSON__;
 const WAIT_DATA = __WAIT_JSON__;
+const MAIN_DATA = __MAIN_DATA_JSON__;
+const BUILDINGS_DECK_B64 = "__BUILDINGS_DECK_B64__";
 
 const WEATHER_STATIONS = [
   {id:2001, name:'Milano Lambrate',      lo:9.2575154,  la:45.49677982, pctOver30:23.9},
@@ -286,32 +259,18 @@ const WEATHER_STATIONS = [
   {id:8162, name:'Milano v.Feltre',      lo:9.24873853, la:45.49163461, pctOver30:22.6},
 ];
 
-const BUILD_LOG = [
-  {tag:'done', label:'Data sourcing', text:'GTFS (ATM), building height (Copernicus Urban Atlas), OSM shelter tags, ARPA Lombardia hourly temperatures &mdash; all validated, see docs/MILAN_DATA_DECISIONS.md.'},
-  {tag:'done', label:'Critical window', text:'Derived empirically from real station data: 12:00&ndash;18:00, June 28 2026 (hottest day, 69-day heat streak found).'},
-  {tag:'done', label:'Solar exposure script', text:'Raster shadow march + shelter tag, tested (7 pytest passing), error margin computed per hour, not asserted.'},
-  {tag:'done', label:'Map: heatmap + weather stations', text:'Point/heatmap toggle to spot hot zones, and the 6 ARPA stations plotted so the temperature source is checkable, not just cited.'},
-  {tag:'done', label:'Map backdrop', text:'No live basemap is reachable from a published artifact (tile servers are blocked by design) &mdash; so the backdrop is the project\u2019s own Copernicus building-height raster, rendered once and embedded, instead of a decorative placeholder.'},
-  {tag:'done', label:'Wait time by stop', text:'A second, independent map: median wait per line then per stop (headway/2), for a representative Sunday since the current ATM feed doesn\u2019t reach back to June 28. Kept separate from the exposure map above &mdash; different dataset (GTFS stop IDs, not OSM), different question.'},
-  {tag:'now', label:'This map', text:'Visual check of the exposure output while the dbt layer gets built.'},
-  {tag:'pending', label:'dbt models', text:'stg_stop_solar_exposure, int_stop_wait_time, mart_stop_heat_risk &mdash; joining this seed into the existing star schema.'},
-  {tag:'pending', label:'Public README', text:'Problem / approach / trade-offs for the Milan branch, mirroring the Valencia repo template.'},
-];
-
-const RAMP = ['var(--ramp-0)','var(--ramp-1)','var(--ramp-2)','var(--ramp-3)','var(--ramp-4)','var(--ramp-5)'];
+const RAMP =['var(--ramp-0)','var(--ramp-1)','var(--ramp-2)','var(--ramp-3)','var(--ramp-4)','var(--ramp-5)'];
 const RAMP_HEX_LIGHT = ['#FFF3D6','#FFD48A','#FFA149','#F06430','#C93A1E','#7A1B0E'];
-const RAMP_HEX_DARK  = ['#7A5A34','#96541F','#B5641E','#D9762A','#EF6B3D','#FF8A5C'];
 
 // Wait-time ramp: light blue -> violet, per the project owner's own request.
 // Still a magnitude scale (0..25+ min), so lightness still runs monotonic
 // light-to-dark even while the hue sweeps -- not a diverging pair, there's
 // no meaningful "zero point" to diverge around.
 const WAIT_RAMP_LIGHT = ['#E3EEFA','#A9C3E8','#7E9CD6','#8A7AC4','#6B4E9E','#4A2F73'];
-const WAIT_RAMP_DARK  = ['#20304A','#33456E','#4A5590','#5F5296','#7A5BA8','#A06FD1'];
 const WAIT_CAP_MIN = 25;
 
 function waitRampColor(t){
-  const stops = isDark() ? WAIT_RAMP_DARK : WAIT_RAMP_LIGHT;
+  const stops = WAIT_RAMP_LIGHT;
   t = Math.max(0, Math.min(1, t));
   const scaled = t * (stops.length - 1);
   const i = Math.floor(scaled);
@@ -321,18 +280,16 @@ function waitRampColor(t){
   return rgbToHex(lerp(c0[0],c1[0],frac), lerp(c0[1],c1[1],frac), lerp(c0[2],c1[2],frac));
 }
 
-function isDark(){
-  const t = document.documentElement.getAttribute('data-theme');
-  if (t === 'dark') return true;
-  if (t === 'light') return false;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
 }
-
 function lerp(a,b,t){ return Math.round(a + (b-a)*t); }
 function hexToRgb(h){ h=h.replace('#',''); return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]; }
 function rgbToHex(r,g,b){ return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join(''); }
 function rampColor(t){
-  const stops = isDark() ? RAMP_HEX_DARK : RAMP_HEX_LIGHT;
+  const stops = RAMP_HEX_LIGHT;
   t = Math.max(0, Math.min(1, t));
   const scaled = t * (stops.length - 1);
   const i = Math.floor(scaled);
@@ -362,13 +319,16 @@ svg.setAttribute('viewBox', `0 0 ${VB_W} ${VB_H}`);
 const mapHolder = document.getElementById('map-holder');
 const heatCanvas = document.getElementById('heatmap');
 
-let mode = 'cumulative'; // 'cumulative' | 12..18
+let mode = 'avg'; // 'avg' | 12..18
 let display = 'points';  // 'points' | 'heatmap'
 let showStations = true;
 
 function weightFor(rec){
-  if (mode === 'cumulative') return rec.e/7;
-  return rec.h[mode-12] ? 1 : 0;
+  // rec.e is the weighted exposure score summed over 12..18 (0-7); rec.h
+  // holds the per-hour weighted score already (0 shadow, 0.5 sun+shelter,
+  // 1 full sun) -- both continuous, not the old exposed/not-exposed flag.
+  if (mode === 'avg') return rec.e/7;
+  return rec.h[mode-12];
 }
 function colorFor(rec){
   return rampColor(weightFor(rec));
@@ -563,10 +523,10 @@ svg.addEventListener('mousemove', (e)=>{
   if ((t.tagName === 'circle' || t.tagName === 'rect') && t.dataset.id){
     const rec = byId[t.dataset.id];
     if (!rec) return;
-    const hoursOn = rec.h.map((v,i)=> v ? (12+i) : null).filter(v=>v!==null);
-    tooltip.innerHTML = `<b>${rec.n || 'Unnamed stop'}</b>` +
-      `Exposed ${rec.e}/7 hours<br>` +
-      (hoursOn.length ? `At: ${hoursOn.join(':00, ')}:00` : 'Never exposed in window') +
+    const hourLabel = mode === 'avg' ? 'Average, 12:00–18:00' : `${mode}:00`;
+    tooltip.innerHTML = `<b>${escapeHtml(rec.n) || 'Unnamed stop'}</b>` +
+      `Exposure score: ${rec.e.toFixed(2)}/7 total<br>` +
+      `At ${hourLabel}: ${weightFor(rec).toFixed(2)}` +
       (rec.sh ? '<br>Has shelter' : '');
   } else if (t.dataset && t.dataset.station){
     const st = byStation[t.dataset.station];
@@ -635,7 +595,7 @@ function renderSunCompass(){
     c.setAttribute('class','sun-dim');
     svg.appendChild(c);
   });
-  const activeHour = mode === 'cumulative' ? 15 : mode;
+  const activeHour = mode === 'avg' ? 15 : mode;
   const pos = SUN_POSITIONS[activeHour];
   const [sx,sy] = sunXY(pos.azimuth, pos.elevation);
   const halo = document.createElementNS(ns,'circle');
@@ -648,32 +608,15 @@ function renderSunCompass(){
   svg.appendChild(sun);
 
   document.getElementById('sun-title').textContent =
-    mode === 'cumulative' ? 'Sun position (15:00 shown)' : `Sun position at ${mode}:00`;
+    mode === 'avg' ? 'Sun position (15:00 shown)' : `Sun position at ${mode}:00`;
   document.getElementById('sun-note').textContent =
     `Azimuth ${pos.azimuth.toFixed(0)}\u00b0, elevation ${pos.elevation.toFixed(0)}\u00b0 above the horizon \u2014 center is overhead, the rim is the horizon. This is what drives the shadow march in solar_exposure.py, not a decoration.`;
 }
 
 // ---- controls ----
-const modes = [
-  {v:'cumulative', label:'All hours'},
-  {v:12, label:'12:00'}, {v:13, label:'13:00'}, {v:14, label:'14:00'},
-  {v:15, label:'15:00'}, {v:16, label:'16:00'}, {v:17, label:'17:00'}, {v:18, label:'18:00'},
-];
-const modeButtons = document.getElementById('mode-buttons');
-modes.forEach(m=>{
-  const b = document.createElement('button');
-  b.textContent = m.label;
-  b.className = m.v === mode ? 'active' : '';
-  b.addEventListener('click', ()=>{
-    mode = m.v;
-    [...modeButtons.children].forEach(btn=>btn.classList.remove('active'));
-    b.classList.add('active');
-    updateLegend();
-    renderSunCompass();
-    renderCurrentDisplay();
-  });
-  modeButtons.appendChild(b);
-});
+// Hour is driven by the single shared control near the top of the page (see
+// "shared view/hour controls" below) -- it sets `mode` (this view) and
+// `waitMode` (the wait view) and re-renders whichever view is active.
 
 const displays = [{v:'points', label:'Points'}, {v:'heatmap', label:'Heatmap'}, {v:'grid', label:'Grid'}];
 const displayButtons = document.getElementById('display-buttons');
@@ -698,15 +641,15 @@ document.getElementById('stations-toggle').addEventListener('change', (e)=>{
 function updateLegend(){
   const title = document.getElementById('legend-title');
   const note = document.getElementById('legend-note');
-  const labels = document.querySelector('.ramp-labels');
-  if (mode === 'cumulative'){
-    title.textContent = 'Hours exposed';
-    note.textContent = 'Of the 7 hours studied (12:00\u201318:00), how many find this stop with no building shadow and no shelter.';
+  const labels = document.getElementById('exposure-ramp-labels');
+  if (mode === 'avg'){
+    title.textContent = 'Exposure score (0\u20137)';
+    note.textContent = 'Sum of the weighted exposure score (0 shadow, 0.5 sun with shelter, 1 full sun) over the 7 hours studied (12:00\u201318:00).';
     labels.innerHTML = '<span>0</span><span>7</span>';
   } else {
-    title.textContent = `Status at ${mode}:00`;
-    note.textContent = 'Whether this specific stop is exposed (no shadow, no shelter) at this hour.';
-    labels.innerHTML = '<span>shaded/sheltered</span><span>exposed</span>';
+    title.textContent = `Exposure score at ${mode}:00`;
+    note.textContent = 'Weighted exposure score at this hour: 0 = building shadow, 0.5 = direct sun with a shelter present, 1 = full sun, no shelter.';
+    labels.innerHTML = '<span>0 (shadow)</span><span>1 (full sun)</span>';
   }
 }
 
@@ -781,33 +724,12 @@ waitSvg.addEventListener('mousemove', (e)=>{
   const v = waitValueFor(rec);
   const hourLabel = waitMode === 'avg' ? 'Average, 12:00–18:00' : `${waitMode}:00`;
   const nl = waitMode === 'avg' ? Math.round(rec.nl.reduce((a,b)=>a+b,0)/Math.max(1,rec.nl.filter(x=>x>0).length)) : rec.nl[waitMode-12];
-  tooltip.innerHTML = `<b>${rec.n || 'Unnamed stop'}</b>${hourLabel}<br>Median wait: ${v!==null?v.toFixed(1)+' min':'no service'}${nl?'<br>'+nl+' line(s) observed':''}`;
+  tooltip.innerHTML = `<b>${escapeHtml(rec.n) || 'Unnamed stop'}</b>${hourLabel}<br>Median wait: ${v!==null?v.toFixed(1)+' min':'no service'}${nl?'<br>'+nl+' line(s) observed':''}`;
   tooltip.style.left = (e.clientX + 14) + 'px';
   tooltip.style.top = (e.clientY + 14) + 'px';
   tooltip.classList.add('show');
 });
 waitSvg.addEventListener('mouseleave', ()=> tooltip.classList.remove('show'));
-
-const waitModes = [
-  {v:'avg', label:'Average'},
-  {v:12, label:'12:00'}, {v:13, label:'13:00'}, {v:14, label:'14:00'},
-  {v:15, label:'15:00'}, {v:16, label:'16:00'}, {v:17, label:'17:00'}, {v:18, label:'18:00'},
-];
-const waitModeButtons = document.getElementById('wait-mode-buttons');
-waitModes.forEach(m=>{
-  const b = document.createElement('button');
-  b.textContent = m.label;
-  b.className = m.v === waitMode ? 'active' : '';
-  b.addEventListener('click', ()=>{
-    waitMode = m.v;
-    [...waitModeButtons.children].forEach(btn=>btn.classList.remove('active'));
-    b.classList.add('active');
-    document.getElementById('wait-legend-title').textContent =
-      waitMode==='avg' ? 'Median wait, avg 12:00–18:00 (min)' : `Median wait at ${waitMode}:00 (min)`;
-    renderWaitMap();
-  });
-  waitModeButtons.appendChild(b);
-});
 
 function renderWaitRampStrip(){
   const strip = document.getElementById('wait-ramp-strip');
@@ -820,19 +742,254 @@ function renderWaitRampStrip(){
 }
 renderWaitRampStrip();
 renderWaitMap();
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{ renderWaitRampStrip(); renderWaitMap(); });
+
+// ==== Main view: deck.gl 3D columns (calore x attesa) ====
+// Exposure color anchors, per contract/map_data.md's exposure_score values:
+// 0 = building shadow, 0.5 = direct sun with a shelter present, 1 = full sun.
+const EXPOSURE_COLOR_ANCHORS = [
+  {t:0,   rgb:[0x1D,0x5C,0x63]}, // shadow
+  {t:0.5, rgb:[0xF2,0xB8,0x4B]}, // sun + shelter
+  {t:1,   rgb:[0xC9,0x3A,0x1E]}, // full sun
+];
+function exposureColorRGBA(t){
+  t = Math.max(0, Math.min(1, t));
+  let lo = EXPOSURE_COLOR_ANCHORS[0], hi = EXPOSURE_COLOR_ANCHORS[EXPOSURE_COLOR_ANCHORS.length-1];
+  for (let i=0;i<EXPOSURE_COLOR_ANCHORS.length-1;i++){
+    if (t >= EXPOSURE_COLOR_ANCHORS[i].t && t <= EXPOSURE_COLOR_ANCHORS[i+1].t){
+      lo = EXPOSURE_COLOR_ANCHORS[i]; hi = EXPOSURE_COLOR_ANCHORS[i+1]; break;
+    }
+  }
+  const span = (hi.t - lo.t) || 1;
+  const frac = (t - lo.t) / span;
+  return [
+    Math.round(lo.rgb[0] + (hi.rgb[0]-lo.rgb[0])*frac),
+    Math.round(lo.rgb[1] + (hi.rgb[1]-lo.rgb[1])*frac),
+    Math.round(lo.rgb[2] + (hi.rgb[2]-lo.rgb[2])*frac),
+    255,
+  ];
+}
+function wordForScore(t){
+  if (t < 0.25) return 'shadow';
+  if (t < 0.75) return 'sun with shelter';
+  return 'full sun';
+}
+function scoreForHour(rec, hour){
+  if (hour === 'avg') return rec.s.reduce((a,b)=>a+b,0)/rec.s.length;
+  return rec.s[hour-12];
+}
+function waitForHourMain(rec, hour){
+  if (hour === 'avg'){
+    const vals = rec.w.filter(v=>v!==null);
+    if (!vals.length) return null;
+    return vals.reduce((a,b)=>a+b,0)/vals.length;
+  }
+  return rec.w[hour-12];
+}
+
+const MAIN_ELEVATION_SCALE = 20; // meters of column height per minute of wait
+const MAIN_BOUNDS = MAIN_DATA.bounds; // [lonMin, latMin, lonMax, latMax]
+
+function fitMainZoom(containerWidth, containerHeight){
+  const [lonMin, latMin, lonMax, latMax] = MAIN_BOUNDS;
+  const lonSpan = Math.max(1e-6, lonMax - lonMin);
+  const latSpan = Math.max(1e-6, latMax - latMin);
+  const latMid = (latMin + latMax) / 2;
+  const zLon = Math.log2((containerWidth || 560) * 360 / (lonSpan * 256));
+  const zLat = Math.log2((containerHeight || 520) * 360 / (latSpan * 256 / Math.cos(latMid*Math.PI/180)));
+  return Math.max(1, Math.min(zLon, zLat) - 0.2);
+}
+
+function mainTooltip({object}){
+  if (!object) return null;
+  const hourLabel = sharedHour === 'avg' ? 'Average, 12:00–18:00' : `${sharedHour}:00`;
+  const score = scoreForHour(object, sharedHour);
+  const wait = waitForHourMain(object, sharedHour);
+  return {
+    html: `<b>${escapeHtml(object.n) || 'Unnamed stop'}</b>${hourLabel}<br>` +
+      `Exposure: ${wordForScore(score)} (${score.toFixed(2)})<br>` +
+      `Wait: ${wait !== null ? wait.toFixed(1) + ' min' : 'no service'}`,
+    style: {
+      backgroundColor: '#1A1A1A', color: '#FFFFFF',
+      fontFamily: 'ui-monospace,SFMono-Regular,"SF Mono",Consolas,monospace',
+      fontSize: '12px', padding: '8px 10px', borderRadius: '7px', lineHeight: '1.5', maxWidth: '240px',
+    },
+  };
+}
+
+function buildMainLayers(hour){
+  const withWait = MAIN_DATA.stops.filter(s => waitForHourMain(s, hour) !== null);
+  const withoutWait = MAIN_DATA.stops.filter(s => waitForHourMain(s, hour) === null);
+  const [lonMin, latMin, lonMax, latMax] = MAIN_BOUNDS;
+  return [
+    new deck.BitmapLayer({
+      id: 'buildings-backdrop',
+      image: 'data:image/png;base64,' + BUILDINGS_DECK_B64,
+      bounds: [lonMin, latMin, lonMax, latMax],
+      opacity: 0.85,
+    }),
+    new deck.ScatterplotLayer({
+      id: 'stops-no-service',
+      data: withoutWait,
+      pickable: true,
+      radiusUnits: 'meters',
+      getPosition: d => [d.lo, d.la],
+      getRadius: 9,
+      getFillColor: [154, 160, 163, 210],
+      getLineColor: [26, 26, 26, 90],
+      lineWidthMinPixels: 1,
+      stroked: true,
+      updateTriggers: { getPosition: [hour] },
+    }),
+    new deck.ColumnLayer({
+      id: 'stops-wait-columns',
+      data: withWait,
+      pickable: true,
+      extruded: true,
+      diskResolution: 6,
+      radius: 11,
+      elevationScale: 1,
+      getPosition: d => [d.lo, d.la],
+      getElevation: d => Math.min(waitForHourMain(d, hour), WAIT_CAP_MIN) * MAIN_ELEVATION_SCALE,
+      getFillColor: d => exposureColorRGBA(scoreForHour(d, hour)),
+      updateTriggers: {
+        getElevation: [hour],
+        getFillColor: [hour],
+      },
+    }),
+  ];
+}
+
+let deckgl = null;
+function ensureDeck(){
+  if (deckgl) return;
+  const holder = document.getElementById('deck-holder');
+  const rect = holder.getBoundingClientRect();
+  const [lonMin, latMin, lonMax, latMax] = MAIN_BOUNDS;
+  deckgl = new deck.DeckGL({
+    container: document.getElementById('deck-container'),
+    initialViewState: {
+      longitude: (lonMin + lonMax) / 2,
+      latitude: (latMin + latMax) / 2,
+      zoom: fitMainZoom(rect.width, rect.height),
+      pitch: 50,
+      bearing: 0,
+    },
+    controller: true,
+    layers: [],
+    getTooltip: mainTooltip,
+  });
+}
+function updateMainLayers(){
+  ensureDeck();
+  deckgl.setProps({ layers: buildMainLayers(sharedHour) });
+}
+function renderMainRampStrip(){
+  const strip = document.getElementById('main-ramp-strip');
+  strip.innerHTML = '';
+  for (let i=0;i<24;i++){
+    const [r,g,b] = exposureColorRGBA(i/23);
+    const s = document.createElement('span');
+    s.style.background = rgbToHex(r,g,b);
+    strip.appendChild(s);
+  }
+}
+
+// ==== Shared view + hour controls ====
+const VIEW_PANELS = {
+  main: document.getElementById('view-panel-main'),
+  exposure: document.getElementById('view-panel-exposure'),
+  wait: document.getElementById('view-panel-wait'),
+};
+let currentView = 'main';
+function renderActiveView(){
+  if (currentView === 'main'){
+    updateMainLayers();
+  } else if (currentView === 'exposure'){
+    mode = sharedHour;
+    updateLegend();
+    renderSunCompass();
+    renderCurrentDisplay();
+  } else if (currentView === 'wait'){
+    waitMode = sharedHour;
+    document.getElementById('wait-legend-title').textContent =
+      waitMode === 'avg' ? 'Median wait, avg 12:00–18:00 (min)' : `Median wait at ${waitMode}:00 (min)`;
+    renderWaitMap();
+  }
+}
+
+const VIEWS = [
+  {v:'main', label:'Heat × wait'},
+  {v:'exposure', label:'Exposure'},
+  {v:'wait', label:'Wait'},
+];
+const viewButtons = document.getElementById('view-buttons');
+VIEWS.forEach(vw=>{
+  const b = document.createElement('button');
+  b.textContent = vw.label;
+  b.className = vw.v === currentView ? 'active' : '';
+  b.addEventListener('click', ()=>{
+    currentView = vw.v;
+    [...viewButtons.children].forEach(btn=>btn.classList.remove('active'));
+    b.classList.add('active');
+    Object.entries(VIEW_PANELS).forEach(([k, el])=>{ el.hidden = k !== currentView; });
+    renderActiveView();
+  });
+  viewButtons.appendChild(b);
+});
+
+let sharedHour = 'avg'; // 'avg' | 12..18 -- drives whichever view is active
+const HOUR_OPTS = [
+  {v:'avg', label:'Average'},
+  {v:12, label:'12:00'}, {v:13, label:'13:00'}, {v:14, label:'14:00'},
+  {v:15, label:'15:00'}, {v:16, label:'16:00'}, {v:17, label:'17:00'}, {v:18, label:'18:00'},
+];
+const hourButtons = document.getElementById('hour-buttons');
+HOUR_OPTS.forEach(h=>{
+  const b = document.createElement('button');
+  b.textContent = h.label;
+  b.className = h.v === sharedHour ? 'active' : '';
+  b.addEventListener('click', ()=>{
+    sharedHour = h.v;
+    [...hourButtons.children].forEach(btn=>btn.classList.remove('active'));
+    b.classList.add('active');
+    renderActiveView();
+  });
+  hourButtons.appendChild(b);
+});
 
 // ---- stats ----
-const total = DATA.length;
-const alwaysExposed = DATA.filter(d=>d.e===7).length;
-const neverExposed = DATA.filter(d=>d.e===0).length;
-const avgPct = (DATA.reduce((s,d)=>s+d.e,0) / (total*7) * 100).toFixed(1);
+// All computed from the embedded MAIN_DATA (main.json), not hand-written --
+// see contract/map_data.md / mart_stop_heat_risk.sql for exposure_score_hours
+// and mart_stop_heat_wait.sql for the avg_exposed_wait_minutes this KPI
+// approximates from the hourly data actually embedded in the page.
+const total = MAIN_DATA.stops.length;
+const highRiskStops = MAIN_DATA.stops.filter(d => d.s.reduce((a,b)=>a+b,0) >= 5);
+const linkedStops = MAIN_DATA.stops.filter(d => d.w.some(v => v !== null));
+
+function median(arr){
+  const sorted = [...arr].sort((a,b)=>a-b);
+  const mid = Math.floor(sorted.length/2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid-1]+sorted[mid])/2;
+}
+// Per high-risk stop, the mean of (exposure_score x wait_minutes) over the
+// hours that actually have wait data -- mirrors mart_stop_heat_wait.sql's
+// avg_exposed_wait_minutes, computed here from the same per-hour values
+// shipped in main.json rather than duplicating the dbt mart's own (single,
+// hour-collapsed) median_wait_12_18 term.
+const highRiskExposedWait = highRiskStops
+  .map(d => {
+    const hours = d.s.map((s,i)=> d.w[i]!==null ? s*d.w[i] : null).filter(v=>v!==null);
+    return hours.length ? hours.reduce((a,b)=>a+b,0)/hours.length : null;
+  })
+  .filter(v => v !== null);
+const medianExposedWait = highRiskExposedWait.length ? median(highRiskExposedWait) : null;
+
 const stats = [
   {n: total.toLocaleString('en-US'), l:'Stops mapped'},
   {n: '12:00\u201318:00', l:'Window studied (Jun 28, 2026)'},
-  {n: alwaysExposed.toLocaleString('en-US') + ' (' + (100*alwaysExposed/total).toFixed(0) + '%)', l:'Always exposed, all 7 hours'},
-  {n: neverExposed.toLocaleString('en-US') + ' (' + (100*neverExposed/total).toFixed(0) + '%)', l:'Never exposed in window'},
-  {n: avgPct + '%', l:'Average exposure across all stop-hours'},
+  {n: highRiskStops.length.toLocaleString('en-US') + ' (' + (100*highRiskStops.length/total).toFixed(0) + '%)', l:'High heat risk (exposure score sum \u2265 5)'},
+  {n: medianExposedWait !== null ? medianExposedWait.toFixed(1) + ' min' : '\u2014', l:'Median minutes waiting in the sun, high-risk stops'},
+  {n: linkedStops.length.toLocaleString('en-US') + ' (' + (100*linkedStops.length/total).toFixed(0) + '%)', l:'Linked to GTFS wait data'},
 ];
 const statsEl = document.getElementById('stats');
 stats.forEach(s=>{
@@ -841,19 +998,13 @@ stats.forEach(s=>{
   statsEl.appendChild(d);
 });
 
-// ---- build log ----
-const logEl = document.getElementById('build-log');
-BUILD_LOG.forEach(item=>{
-  const row = document.createElement('div'); row.className='log-item';
-  row.innerHTML = `<span class="tag ${item.tag==='pending'?'pending':''}">${item.tag==='pending'?'next':item.tag==='now'?'now':'done'}</span><p><b>${item.label}.</b> ${item.text}</p>`;
-  logEl.appendChild(row);
-});
-
 updateLegend();
 renderRampStrip();
 renderSunCompass();
 renderCurrentDisplay();
+renderMainRampStrip();
+ensureDeck();
+updateMainLayers();
 
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{ renderRampStrip(); renderCurrentDisplay(); });
 window.addEventListener('resize', ()=>{ if (display==='heatmap' || display==='grid') renderHeatmapCanvas(display==='grid'); });
 </script>

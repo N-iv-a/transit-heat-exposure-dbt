@@ -12,3 +12,13 @@ models:
           - accepted_values:
               arguments:
                 values: [12, 13, 14, 15, 16, 17, 18]
+      - name: exposure_score
+        tests:
+          - not_null
+
+  - name: stg_osm_shelter_stops
+    columns:
+      - name: osm_node_id
+        tests:
+          - not_null
+          - unique

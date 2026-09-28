@@ -1,60 +1,55 @@
-"""Aggregate stop_solar_exposure.csv + the OSM shelter export into the
-compact per-stop JSON the map template embeds directly (field names kept
-short since this ships inline in the page: id, n(ame), lo(n), la(t),
-sh(elter), e(xposed hour count), h(ourly exposed booleans)).
+"""Read main.mart_stop_heat_wait_hourly from gtfs.duckdb into the compact
+per-stop JSON the map template embeds directly (field names kept short since
+this ships inline in the page: id, n(ame), lo(n), la(t), sh(elter),
+e(xposure score summed 12..18, 0-7), h(ourly exposure_score, 12..18)).
+
+See contract/map_data.md for the mart's grain and columns -- the frontend
+does not recompute exposure_score, it only aggregates per stop for display.
 """
 
 import json
 from pathlib import Path
 
-import pandas as pd
+import duckdb
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-EXPOSURE_CSV = PROJECT_ROOT / "data_milan/seeds/stop_solar_exposure.csv"
-SHELTER_GEOJSON = PROJECT_ROOT / "data_milan/seeds/osm_shelter/export_shelter_milano.geojson"
+DUCKDB_PATH = PROJECT_ROOT / "gtfs.duckdb"
 OUTPUT_JSON = Path(__file__).resolve().parent / "data" / "exposure.json"
+
+HOURS = list(range(12, 19))
+
+QUERY = """
+select osm_node_id, stop_name, lon, lat, has_shelter, hour, exposure_score
+from main.mart_stop_heat_wait_hourly
+order by osm_node_id, hour
+"""
 
 
 def main() -> None:
-    exposure = pd.read_csv(EXPOSURE_CSV)
+    con = duckdb.connect(str(DUCKDB_PATH), read_only=True)
+    rows = con.execute(QUERY).fetchall()
+    con.close()
 
-    with open(SHELTER_GEOJSON) as f:
-        stops_geo = json.load(f)
-
-    stop_meta = {}
-    for feat in stops_geo["features"]:
-        props = feat["properties"]
-        stop_id = props["@id"]
-        lon, lat = feat["geometry"]["coordinates"]
-        stop_meta[stop_id] = {
-            "name": props.get("name", ""),
-            "lon": lon,
-            "lat": lat,
-            "shelter": props.get("shelter") == "yes",
-        }
-
-    agg = exposure.groupby("stop_id").agg(exposed_hours=("exposed", "sum")).reset_index()
+    by_stop: dict[str, dict] = {}
+    for osm_node_id, stop_name, lon, lat, has_shelter, hour, exposure_score in rows:
+        stop = by_stop.setdefault(
+            osm_node_id,
+            {"n": stop_name or "", "lo": lon, "la": lat, "sh": bool(has_shelter), "scores": {}},
+        )
+        stop["scores"][hour] = exposure_score
 
     records = []
-    for _, row in agg.iterrows():
-        meta = stop_meta.get(row["stop_id"])
-        if not meta:
-            continue
-        hours = (
-            exposure[exposure.stop_id == row["stop_id"]]
-            .sort_values("hour")["exposed"]
-            .astype(int)
-            .tolist()
-        )
+    for osm_node_id, stop in by_stop.items():
+        h = [stop["scores"].get(hr) for hr in HOURS]
         records.append(
             {
-                "id": row["stop_id"].replace("node/", ""),
-                "n": meta["name"],
-                "lo": round(meta["lon"], 5),
-                "la": round(meta["lat"], 5),
-                "sh": meta["shelter"],
-                "e": int(row["exposed_hours"]),
-                "h": hours,
+                "id": osm_node_id.replace("node/", ""),
+                "n": stop["n"],
+                "lo": round(stop["lo"], 5),
+                "la": round(stop["la"], 5),
+                "sh": stop["sh"],
+                "e": round(sum(v for v in h if v is not None), 3),
+                "h": [round(v, 3) if v is not None else None for v in h],
             }
         )
 

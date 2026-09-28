@@ -15,3 +15,15 @@ target/
 dbt_packages/
 logs/
 .user.yml
+
+# dev-loop
+.claude/run/
+.claude/agents-off/
+.claude/settings.local.json
+.env
+.env.*
+node_modules/
+dist/
+*.db
+*.sqlite
+export/
