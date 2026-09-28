@@ -18,6 +18,39 @@ models:
               arguments:
                 values: ["low", "medium", "high"]
 
+  - name: mart_stop_heat_wait_hourly
+    columns:
+      - name: osm_node_id
+        tests:
+          - not_null
+      - name: hour
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [12, 13, 14, 15, 16, 17, 18]
+      - name: exposure_score
+        tests:
+          - not_null
+      - name: lon
+        tests:
+          - not_null
+      - name: lat
+        tests:
+          - not_null
+      - name: match_method
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["ref", "nearest", "unmatched"]
+      - name: risk_level
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["low", "medium", "high"]
+
   - name: mart_stop_heat_wait
     columns:
       - name: osm_node_id
