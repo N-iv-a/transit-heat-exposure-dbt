@@ -340,6 +340,8 @@ equivalent to `data/raw/` and no per-agency file list to iterate.
   ≤ 1, else `medium`): 1,056 high / 1,784 medium / 91 low. The original
   binary reading is kept as `hours_exposed_binary` / `risk_level_binary`
   (`high` = exposed all 7 hours — the 724-stop finding from §6).
+- `mart_stop_heat_wait_hourly` — stop × hour (20,517 rows), the map's
+  data source; columns fixed by `contract/map_data.md`.
 - `int_osm_gtfs_stop_bridge` — one row per OSM stop (from the OSM export,
   loaded as `raw_milan.osm_shelter_stops`). `match_method`: `ref` when the
   OSM `ref` tag equals a GTFS `stop_id` within 200 m (sanity cap against
@@ -349,11 +351,13 @@ equivalent to `data/raw/` and no per-agency file list to iterate.
   2,466 `ref` (median 8.6 m), 125 `nearest` (median 14.1 m), 340
   `unmatched`.
 - `mart_stop_heat_wait` — `mart_stop_heat_risk` + bridge + wait time, per
-  OSM stop. `avg_exposed_wait_minutes` = mean over the 7 hours of (exposed
-  × median wait 12–18, using `exposure_score`): average minutes a
-  passenger waits in the sun. Median 8.6 min for `high`-risk stops (p90
-  11.4), 4.2 for `medium`, 1.1 for `low`. Caveat, declared: exposure
-  is computed for June 28, wait time for the September 13 reference day —
+  OSM stop. `avg_exposed_wait_minutes` = mean, over the hours with service,
+  of (hourly `exposure_score` × that hour's median wait), taken from
+  `mart_stop_heat_wait_hourly` — the same definition the map uses, pinned
+  by `assert_heat_wait_avg_matches_hourly.sql`: average minutes a passenger
+  waits in the sun. Median 8.9 min for `high`-risk stops (p90 11.6), 4.2
+  for `medium`, 1.0 for `low`. Caveat, declared: exposure is computed for
+  June 28, wait time for the September 13 reference day —
   two different days, read as a v1 approximation, not a same-day measure.
 - Tests: `not_null`/`accepted_values` on hour and bucket/risk columns, plus
   a singular uniqueness test (`assert_stg_stop_solar_exposure_unique_node_hour.sql`,

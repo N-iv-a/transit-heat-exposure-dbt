@@ -36,7 +36,7 @@ Ogni assunzione è dichiarata, non nascosta; i limiti sono parte del risultato.
 4. **Rischio calore per fermata**: somma dei punteggi sulle 7 ore (0–7); alto ≥ 5, basso ≤ 1, medio altrimenti.
 5. **Attesa per fermata e ora**: per linea, mediana degli intervalli tra partenze nell'ora, divisa per 2; poi mediana tra le linee della fermata; gli intervalli > 3 h (ultime corse) sono esclusi.
 6. **Collegamento OSM ↔ GTFS**: prima `ref` OSM = `stop_id` GTFS (entro 200 m, controllo di coerenza), poi fermata GTFS più vicina entro 30 m (distanza haversine), altrimenti non abbinata.
-7. **Attesa al sole**: per ogni ora punteggio × attesa mediana; media sulle 7 ore = `avg_exposed_wait_minutes`, cioè i minuti medi che un passeggero passa ad aspettare sotto il sole.
+7. **Attesa al sole**: per ogni ora punteggio × attesa di quella stessa ora; media sulle ore con servizio = `avg_exposed_wait_minutes`, cioè i minuti medi che un passeggero passa ad aspettare sotto il sole. Stessa definizione in dbt e nella mappa.
 8. **Valencia**: chiavi con prefisso agenzia (`EMT-…`, `GVA-…`); orari oltre le 24:00 gestiti col modulo 24; frequenze aggregate per tipo di giorno, corse per data esatta.
 
 ## Output
@@ -46,7 +46,7 @@ Ogni assunzione è dichiarata, non nascosta; i limiti sono parte del risultato.
 
 **Risultati principali (Milano)**
 - 1.056 fermate su 2.931 ad alto rischio calore (724 con la lettura binaria), 91 a basso rischio.
-- Attesa al sole mediana: 8,6 min per le fermate ad alto rischio (p90 11,4), 1,1 min per quelle a basso rischio.
+- Attesa al sole mediana: 8,9 min per le fermate ad alto rischio (p90 11,6), 4,2 per il medio, 1,0 per il basso.
 - 2.591 fermate collegate al GTFS (2.466 per `ref`, 125 per prossimità), 340 senza abbinamento.
 
 **Mappa**: `scripts/milan/map/dist/milan_heat_map.html`, pagina HTML autocontenuta (~6 MB: dati, sfondo edifici e deck.gl incorporati). Vista principale 3D **Calore × attesa**: una colonna per fermata, altezza = attesa (tetto 25 min), colore = punteggio di esposizione, ora per ora o media 12–18; sotto-viste Esposizione e Attesa. Legge da dbt (`contract/map_data.md`).

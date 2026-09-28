@@ -3,13 +3,12 @@
   mart_stop_heat_risk plus the bridge to the GTFS wait-time side
   (int_osm_gtfs_stop_bridge.sql), for stops that could be matched.
 
-  avg_exposed_wait_minutes is the mean, over the 7 critical hours
-  (12:00-18:00), of (exposure_score * median_wait_12_18) -- i.e. average
-  minutes spent waiting in the sun per hour of the window, weighted by how
-  exposed that hour is (shelter attenuates but does not cancel exposure,
-  see mart_stop_heat_risk.sql). It's NULL when the stop has no GTFS match
-  (match_method = 'unmatched') or the matched GTFS stop has no wait data in
-  the 12-18 window.
+  avg_exposed_wait_minutes is the average, over the 7 critical hours
+  (12:00-18:00), of exposed_wait_minutes as defined in
+  mart_stop_heat_wait_hourly.sql (exposure_score * median_wait_minutes for
+  that hour -- i.e. the same per-hour definition used by the map), ignoring
+  hours with no wait data. It's NULL when the stop has no GTFS match
+  (match_method = 'unmatched') or none of the 7 hours has wait data.
 
   Reminder (see int_osm_gtfs_stop_bridge.sql): exposure is for 2026-06-28,
   wait time for 2026-09-13 -- two different reference days, combined here
@@ -52,30 +51,17 @@ wait_12_18 as (
 
 ),
 
-exposure_hours as (
+hourly as (
 
-    select osm_node_id, hour, exposure_score
-    from {{ ref('stg_stop_solar_exposure') }}
-
-),
-
-exposed_wait_hours as (
-
-    select
-        e.osm_node_id,
-        e.hour,
-        e.exposure_score * w.median_wait_12_18 as exposed_wait_minutes
-
-    from exposure_hours e
-    inner join bridge b on e.osm_node_id = b.osm_node_id
-    inner join wait_12_18 w on b.gtfs_stop_id = w.gtfs_stop_id
+    select osm_node_id, exposed_wait_minutes
+    from {{ ref('mart_stop_heat_wait_hourly') }}
 
 ),
 
 avg_exposed_wait as (
 
     select osm_node_id, avg(exposed_wait_minutes) as avg_exposed_wait_minutes
-    from exposed_wait_hours
+    from hourly
     group by 1
 
 )
