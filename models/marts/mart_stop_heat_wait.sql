@@ -4,11 +4,12 @@
   (int_osm_gtfs_stop_bridge.sql), for stops that could be matched.
 
   avg_exposed_wait_minutes is the mean, over the 7 critical hours
-  (12:00-18:00), of (exposed ? median_wait_12_18 : 0) -- i.e. average
-  minutes spent waiting in direct sun per hour of the window, treating
-  unexposed hours as contributing 0. It's NULL when the stop has no GTFS
-  match (match_method = 'unmatched') or the matched GTFS stop has no wait
-  data in the 12-18 window.
+  (12:00-18:00), of (exposure_score * median_wait_12_18) -- i.e. average
+  minutes spent waiting in the sun per hour of the window, weighted by how
+  exposed that hour is (shelter attenuates but does not cancel exposure,
+  see mart_stop_heat_risk.sql). It's NULL when the stop has no GTFS match
+  (match_method = 'unmatched') or the matched GTFS stop has no wait data in
+  the 12-18 window.
 
   Reminder (see int_osm_gtfs_stop_bridge.sql): exposure is for 2026-06-28,
   wait time for 2026-09-13 -- two different reference days, combined here
@@ -20,10 +21,13 @@ with heat_risk as (
     select
         osm_node_id,
         hours_measured,
-        hours_exposed,
-        pct_hours_exposed,
+        exposure_score_hours,
+        pct_exposure_score,
+        hours_exposed_binary,
+        pct_hours_exposed_binary,
         has_shelter,
-        risk_level
+        risk_level,
+        risk_level_binary
 
     from {{ ref('mart_stop_heat_risk') }}
 
@@ -50,7 +54,7 @@ wait_12_18 as (
 
 exposure_hours as (
 
-    select osm_node_id, hour, exposed
+    select osm_node_id, hour, exposure_score
     from {{ ref('stg_stop_solar_exposure') }}
 
 ),
@@ -60,7 +64,7 @@ exposed_wait_hours as (
     select
         e.osm_node_id,
         e.hour,
-        case when e.exposed then w.median_wait_12_18 else 0 end as exposed_wait_minutes
+        e.exposure_score * w.median_wait_12_18 as exposed_wait_minutes
 
     from exposure_hours e
     inner join bridge b on e.osm_node_id = b.osm_node_id
@@ -79,10 +83,13 @@ avg_exposed_wait as (
 select
     hr.osm_node_id,
     hr.hours_measured,
-    hr.hours_exposed,
-    hr.pct_hours_exposed,
+    hr.exposure_score_hours,
+    hr.pct_exposure_score,
+    hr.hours_exposed_binary,
+    hr.pct_hours_exposed_binary,
     hr.has_shelter,
     hr.risk_level,
+    hr.risk_level_binary,
     b.gtfs_stop_id,
     b.match_method,
     b.distance_m,

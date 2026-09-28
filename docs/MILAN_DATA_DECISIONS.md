@@ -241,11 +241,12 @@ exposed).
 
 ## Still open
 
-- How exactly `shelter` and building-shadow layers combine into one
-  exposure signal is already answered by the script (both must be absent
-  for "exposed" to be true) — but whether the mart should also expose them
-  separately (for a "how much does shelter alone change things" cut) isn't
-  decided yet
+- ~~Whether shelter and building shadow should be read separately~~ —
+  decided: a shelter is an attenuating factor, not a full cancel. A roof
+  in full sun does not cool like a building's (or a tree's) shade, so a
+  sheltered stop-hour in the sun scores `shelter_exposure_factor` (0.5)
+  instead of 0; building shadow stays 0, unsheltered sun stays 1. The
+  binary `exposed` flag in the seed is kept for comparison (§8).
 - Whether the critical-day windows found in §5 change which GTFS service
   dates get joined against (`mart_service_frequency` in the Valencia repo
   is day-type based, not exact-date — Milan's mart may want the actual June
@@ -332,10 +333,13 @@ equivalent to `data/raw/` and no per-agency file list to iterate.
   (low/medium/high, split at the same 10/25-minute marks the map's colour
   ramp uses).
 - `mart_stop_heat_risk` — grain change from `stg_stop_solar_exposure`
-  (stop × hour) to stop: `hours_exposed`, `pct_hours_exposed`, and a
-  `risk_level` flag (`high` = exposed at all 7 hours — the 724-stop
-  actionable finding from §6). Kept exposure-only on purpose; the join
-  with wait time lives in the two models below.
+  (stop × hour) to stop. Per hour, `exposure_score` (in staging) is 0 in
+  building shadow, `var('shelter_exposure_factor', 0.5)` in the sun under a
+  shelter, 1 in unsheltered sun (see "Still open", decided). The mart sums
+  it to `exposure_score_hours` (0–7) and `risk_level` (`high` ≥ 5, `low`
+  ≤ 1, else `medium`): 1,056 high / 1,784 medium / 91 low. The original
+  binary reading is kept as `hours_exposed_binary` / `risk_level_binary`
+  (`high` = exposed all 7 hours — the 724-stop finding from §6).
 - `int_osm_gtfs_stop_bridge` — one row per OSM stop (from the OSM export,
   loaded as `raw_milan.osm_shelter_stops`). `match_method`: `ref` when the
   OSM `ref` tag equals a GTFS `stop_id` within 200 m (sanity cap against
@@ -346,16 +350,18 @@ equivalent to `data/raw/` and no per-agency file list to iterate.
   `unmatched`.
 - `mart_stop_heat_wait` — `mart_stop_heat_risk` + bridge + wait time, per
   OSM stop. `avg_exposed_wait_minutes` = mean over the 7 hours of (exposed
-  ? median wait 12–18 : 0): average minutes a passenger waits in the sun.
-  `high`-risk stops average ~9.9 min (p90 12). Caveat, declared: exposure
+  × median wait 12–18, using `exposure_score`): average minutes a
+  passenger waits in the sun. Median 8.6 min for `high`-risk stops (p90
+  11.4), 4.2 for `medium`, 1.1 for `low`. Caveat, declared: exposure
   is computed for June 28, wait time for the September 13 reference day —
   two different days, read as a v1 approximation, not a same-day measure.
 - Tests: `not_null`/`accepted_values` on hour and bucket/risk columns, plus
   a singular uniqueness test (`assert_stg_stop_solar_exposure_unique_node_hour.sql`,
   mirroring `assert_fct_trips_unique_trip_date.sql`'s pattern) and
   `unique`/`not_null` on `mart_stop_heat_risk.osm_node_id`. All pass;
-  `mart_stop_heat_risk`'s risk_level counts (724 high / 595 medium / 1,612
-  low) match §6's findings exactly.
+  `mart_stop_heat_risk`'s risk_level_binary counts (724 high / 595 medium /
+  1,612 low) match §6's findings exactly; `assert_exposure_score_valid.sql`
+  pins the hourly score to {0, factor, 1}.
 
 ## 9. Running it
 
@@ -386,7 +392,7 @@ Explore the result:
 python3 -c "
 import duckdb
 con = duckdb.connect('gtfs.duckdb')
-print(con.execute('select risk_level, count(*) from main.mart_stop_heat_risk group by 1').fetchall())
+print(con.execute('select risk_level, count(*) from main.mart_stop_heat_risk group by 1').fetchall())  # weighted; risk_level_binary for the §6 reading
 "
 ```
 

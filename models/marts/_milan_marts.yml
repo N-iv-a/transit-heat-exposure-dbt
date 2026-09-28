@@ -12,6 +12,11 @@ models:
           - accepted_values:
               arguments:
                 values: ["low", "medium", "high"]
+      - name: risk_level_binary
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["low", "medium", "high"]
 
   - name: mart_stop_heat_wait
     columns:
@@ -20,6 +25,11 @@ models:
           - unique
           - not_null
       - name: risk_level
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["low", "medium", "high"]
+      - name: risk_level_binary
         tests:
           - accepted_values:
               arguments:
