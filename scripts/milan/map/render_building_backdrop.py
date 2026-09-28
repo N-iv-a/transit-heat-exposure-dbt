@@ -13,6 +13,12 @@ longitude (so it reads as roughly true-shaped at Milan's latitude), plus a
 fixed padding margin. It's re-derived here in Python rather than imported,
 since the template's version runs in the browser -- if the map's PAD or
 projection logic changes, this needs updating to match.
+
+Beside the SVG backdrop above, this also renders `data/buildings_deck.png`:
+a plain lon/lat grid (no cos(latitude) correction, no padding margin) over
+the exact bounds in `data/main.json`, so it can be dropped straight into a
+deck.gl `BitmapLayer` with those bounds -- deck.gl's own map coordinates are
+already plain WGS84 lon/lat, unlike template.html's SVG projection above.
 """
 
 import json
@@ -26,7 +32,9 @@ from rasterio.warp import Resampling, reproject
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 HEIGHT_RASTER = PROJECT_ROOT / "data_milan/seeds/building_height/IT002_MILANO_UA2012_DHM_V010.tif"
 EXPOSURE_JSON = Path(__file__).resolve().parent / "data" / "exposure.json"
+MAIN_JSON = Path(__file__).resolve().parent / "data" / "main.json"
 OUTPUT_DIR = Path(__file__).resolve().parent / "data"
+DECK_GRID_W = 900
 
 PAD = 0.05
 OUT_W = 760
@@ -103,6 +111,27 @@ def build_backdrop(height_grid, nodata, vb_w, vb_h, color_lo, color_hi, out_w) -
     return rgb_quantized
 
 
+def build_plain_backdrop(height_grid, nodata, color_lo, color_hi) -> Image.Image:
+    """Same coloring as build_backdrop, but no PAD margin and no resize/quantize
+    step tied to an SVG viewBox -- deck.gl's BitmapLayer maps the raw pixel
+    grid directly onto the given lon/lat bounds, so the image's own aspect
+    ratio (from `reproject_to_plain_grid`'s plain lon/lat grid) is exactly
+    the bounds' aspect ratio already.
+    """
+    valid = height_grid != nodata
+    t = np.clip(height_grid.astype(np.float32), 0, MAX_HEIGHT_M) / MAX_HEIGHT_M
+
+    lo = np.array(hex_to_rgb(color_lo), dtype=np.float32)
+    hi = np.array(hex_to_rgb(color_hi), dtype=np.float32)
+    rgb = lo[None, None, :] + (hi - lo)[None, None, :] * t[:, :, None]
+
+    h, w = height_grid.shape
+    rgba = np.zeros((h, w, 4), dtype=np.uint8)
+    rgba[:, :, :3] = rgb.astype(np.uint8)
+    rgba[:, :, 3] = np.where(valid, 235, 0).astype(np.uint8)
+    return Image.fromarray(rgba, "RGBA")
+
+
 def main() -> None:
     lon_min, lon_max, lat_min, lat_max = stop_bounds()
     lat_mid = (lat_min + lat_max) / 2
@@ -118,6 +147,19 @@ def main() -> None:
     path = OUTPUT_DIR / "buildings.png"
     img.save(path, optimize=True)
     print(f"{path}: {path.stat().st_size / 1024:.0f} KB")
+
+    with open(MAIN_JSON) as f:
+        deck_lon_min, deck_lat_min, deck_lon_max, deck_lat_max = json.load(f)["bounds"]
+    deck_height_grid, deck_nodata = reproject_to_plain_grid(
+        deck_lon_min, deck_lon_max, deck_lat_min, deck_lat_max
+    )
+    deck_img = build_plain_backdrop(deck_height_grid, deck_nodata, BUILDING_COLORS[0], BUILDING_COLORS[1])
+    deck_h, deck_w = deck_height_grid.shape
+    deck_out_h = round(DECK_GRID_W * deck_h / deck_w)
+    deck_img = deck_img.resize((DECK_GRID_W, deck_out_h), Image.LANCZOS)
+    deck_path = OUTPUT_DIR / "buildings_deck.png"
+    deck_img.save(deck_path, optimize=True)
+    print(f"{deck_path}: {deck_path.stat().st_size / 1024:.0f} KB")
 
 
 if __name__ == "__main__":

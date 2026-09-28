@@ -49,7 +49,7 @@ Ogni assunzione è dichiarata, non nascosta; i limiti sono parte del risultato.
 - Attesa al sole mediana: 8,6 min per le fermate ad alto rischio (p90 11,4), 1,1 min per quelle a basso rischio.
 - 2.591 fermate collegate al GTFS (2.466 per `ref`, 125 per prossimità), 340 senza abbinamento.
 
-**Mappa**: `scripts/milan/map/dist/milan_heat_map.html`, pagina HTML autocontenuta (dati e sfondo edifici incorporati) con le viste esposizione e attesa.
+**Mappa**: `scripts/milan/map/dist/milan_heat_map.html`, pagina HTML autocontenuta (~6 MB: dati, sfondo edifici e deck.gl incorporati). Vista principale 3D **Calore × attesa**: una colonna per fermata, altezza = attesa (tetto 25 min), colore = punteggio di esposizione, ora per ora o media 12–18; sotto-viste Esposizione e Attesa. Legge da dbt (`contract/map_data.md`).
 
 **Test**: data test dbt (unicità, valori ammessi, soglie di distanza, punteggio valido) e 7 test pytest sul calcolo dell'ombra.
 

@@ -6,22 +6,39 @@ the final presentation — see "Known aesthetic issues" below for what's
 explicitly deferred to a later polish pass. Styling is now a plain,
 white-background page (system fonts, flat surfaces, a single light theme).
 
+The `prepare_*` scripts read from `gtfs.duckdb` at the project root (tables
+`main.mart_stop_heat_wait_hourly` and `main.int_stop_wait_time`, per
+`contract/map_data.md`) — not from CSVs. That means `gtfs.duckdb` needs the
+Milan dbt models built first (`python3 ingestion/load_milan.py && dbt run
+--profiles-dir . --select source:raw_milan+` from the project root).
+
 ## Running it
 
 ```bash
 pip install -r ../requirements.txt
 
+# from the project root, once, so gtfs.duckdb has the Milan marts:
+python3 ../../../ingestion/load_milan.py
+cd ../../.. && dbt run --profiles-dir . --select source:raw_milan+ && cd scripts/milan/map
+
+python prepare_main_data.py           # -> data/main.json (main deck.gl view)
 python prepare_exposure_data.py       # -> data/exposure.json
 python prepare_wait_data.py           # -> data/wait_time.json
-python render_building_backdrop.py    # -> data/buildings.png
+python render_building_backdrop.py    # -> data/buildings.png, data/buildings_deck.png
 python build_map.py                   # -> dist/milan_heat_map.html
 ```
 
-Open `dist/milan_heat_map.html` directly in a browser — everything (data,
-the backdrop image) is inlined, no server needed.
+`prepare_main_data.py` must run before `render_building_backdrop.py`: the
+deck.gl backdrop (`data/buildings_deck.png`) is rendered over the exact
+bounds in `data/main.json`. This is also the order `.claude/loop.json`'s
+frontend build command uses.
 
-`data/` and `dist/` are gitignored: both are generated from the seeds in
-`data_milan/seeds/`, not source.
+Open `dist/milan_heat_map.html` directly in a browser — everything (data,
+the backdrop images, the vendored `vendor/deck.gl-9.4.0.min.js` bundle) is
+inlined, no server needed and no network requests made.
+
+`data/` and `dist/` are gitignored: both are generated from `gtfs.duckdb`
+(itself built from the seeds in `data_milan/seeds/`), not source.
 
 ## Known aesthetic issues (deferred — noted, not forgotten)
 

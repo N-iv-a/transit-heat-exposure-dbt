@@ -1,29 +1,37 @@
-"""Aggregate stop_wait_time.csv into the compact per-stop JSON the map
-template embeds (id, n(ame), lo(n), la(t), w(ait minutes per hour, 12..18,
-null where the stop has no service that hour), nl (lines observed per hour)).
+"""Read main.int_stop_wait_time from gtfs.duckdb into the compact per-stop
+JSON the map template embeds (id, n(ame), lo(n), la(t), w(ait minutes per
+hour, 12..18, null where the stop has no service that hour), nl (lines
+observed per hour)). Output format unchanged from the CSV-based version.
 """
 
 import json
 from collections import defaultdict
 from pathlib import Path
 
-import pandas as pd
+import duckdb
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-WAIT_CSV = PROJECT_ROOT / "data_milan/seeds/stop_wait_time.csv"
+DUCKDB_PATH = PROJECT_ROOT / "gtfs.duckdb"
 OUTPUT_JSON = Path(__file__).resolve().parent / "data" / "wait_time.json"
 
 HOURS = range(12, 19)
 
+QUERY = """
+select gtfs_stop_id, stop_name, lon, lat, hour, median_wait_minutes, n_lines
+from main.int_stop_wait_time
+"""
+
 
 def main() -> None:
-    df = pd.read_csv(WAIT_CSV)
+    con = duckdb.connect(str(DUCKDB_PATH), read_only=True)
+    rows = con.execute(QUERY).fetchall()
+    con.close()
 
     by_stop = defaultdict(dict)
     meta = {}
-    for row in df.itertuples():
-        by_stop[row.stop_id][row.hour] = (row.median_wait_minutes, row.n_lines)
-        meta[row.stop_id] = (row.stop_name, row.lon, row.lat)
+    for stop_id, stop_name, lon, lat, hour, median_wait_minutes, n_lines in rows:
+        by_stop[stop_id][hour] = (median_wait_minutes, n_lines)
+        meta[stop_id] = (stop_name, lon, lat)
 
     records = []
     for stop_id, hours in by_stop.items():
