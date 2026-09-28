@@ -16,4 +16,4 @@ Letto dal security-reviewer. Le regole generali valgono per ogni progetto; le sp
 - Solo open data di terze parti (GTFS, Copernicus, OSM, ARPA): ogni nuova fonte va citata con licenza nel `docs/*_DATA_DECISIONS.md` della città.
 - I feed GTFS grezzi (`data/raw/`, `data_milan/raw/`) e `gtfs.duckdb` non si versionano.
 - Nei seed e negli export OSM niente campi di contatto (email, telefono) oltre quelli strettamente necessari all'analisi.
-- La mappa è un HTML autocontenuto: nessuna tile, script o font da server esterni (font di sistema).
+- La mappa è un HTML autocontenuto: nessuna tile, script o font caricati da server esterni (font di sistema). Le librerie JS stanno in `scripts/milan/map/vendor/` con versione, licenza e SHA-256 in `vendor/README.md`, e vengono incorporate nell'HTML; oggi solo deck.gl 9.4.0 (MIT).

@@ -51,7 +51,7 @@
     },
     "frontend": {
       "lint":  "python3 -m py_compile scripts/milan/map/*.py",
-      "build": "cd scripts/milan/map && python3 prepare_exposure_data.py && python3 prepare_wait_data.py && python3 render_building_backdrop.py && python3 build_map.py",
+      "build": "python3 ingestion/load_milan.py && dbt run --profiles-dir . --select source:raw_milan+ && cd scripts/milan/map && python3 prepare_exposure_data.py && python3 prepare_wait_data.py && python3 render_building_backdrop.py && python3 build_map.py",
       "test":  "test -s scripts/milan/map/dist/milan_heat_map.html && ! grep -qE \"__[A-Z_]+__\" scripts/milan/map/dist/milan_heat_map.html",
       "e2e_smoke": "",
       "e2e_full": ""

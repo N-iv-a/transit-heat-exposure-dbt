@@ -13,7 +13,10 @@
     "[A-Za-z0-9._%+-]+@example\\.(com|org|net|it)",
     "[A-Za-z0-9._%+-]+@users\\.noreply\\.github\\.com",
     "noreply@anthropic\\.com",
-    "RSSMRA85T10A562S"
+    "RSSMRA85T10A562S",
+    "dcode@dcode\\.io",
+    "360\\.9856235",
+    "contextmenuInput"
   ],
   "ignore_paths": [
     "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "poetry.lock", "uv.lock",
