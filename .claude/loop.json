@@ -52,7 +52,7 @@
     "frontend": {
       "lint":  "python3 -m py_compile scripts/milan/map/*.py",
       "build": "python3 ingestion/load_milan.py && dbt run --profiles-dir . --select source:raw_milan+ && cd scripts/milan/map && python3 prepare_main_data.py && python3 prepare_exposure_data.py && python3 prepare_wait_data.py && python3 render_building_backdrop.py && python3 build_map.py",
-      "test":  "test -s scripts/milan/map/dist/milan_heat_map.html && for p in $(grep -oE \"__[A-Z_]+__\" scripts/milan/map/template.html | sort -u); do if grep -qF \"$p\" scripts/milan/map/dist/milan_heat_map.html; then echo \"segnaposto non sostituito: $p\"; exit 1; fi; done",
+      "test":  "for f in index.html data/main.json data/exposure.json data/wait_time.json vendor/deck.gl-9.4.0.min.js; do test -s scripts/milan/map/dist/site/$f || { echo \"manca o vuoto: $f\"; exit 1; }; done && test -s scripts/milan/map/dist/milan_heat_map.html && for p in $(grep -oE \"__[A-Z_]+__\" scripts/milan/map/template.html | sort -u); do for h in scripts/milan/map/dist/site/index.html scripts/milan/map/dist/milan_heat_map.html; do if grep -qF \"$p\" \"$h\"; then echo \"segnaposto non sostituito: $p in $h\"; exit 1; fi; done; done",
       "e2e_smoke": "",
       "e2e_full": ""
     }

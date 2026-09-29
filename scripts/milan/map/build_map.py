@@ -1,64 +1,130 @@
-"""Assemble the final, self-contained map HTML from template.html plus the
-generated data files. Run the three prepare/render scripts first (or `make`
--- see README.md in this folder).
+"""Assemble the map from template.html plus the generated data files.
+Run the prepare/render scripts first (see README.md in this folder).
 
-Output is a single HTML file with everything inlined (data, the backdrop
-image as base64) -- no build step or server needed to view it, and nothing
-it depends on lives outside this one file.
+One template, two outputs:
+  * dist/site/            static site: index.html + data/*.json + data/*.png +
+                          vendor/deck.gl-*.min.js (+ og.png if versioned here).
+                          The page fetches its data with relative URLs, so it
+                          needs HTTP (local server or GitHub Pages).
+  * dist/milan_heat_map.html   single self-contained file (data, images and
+                          deck.gl inlined) that works from file:// offline.
 """
 
+import base64
+import json
 import re
+import shutil
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 TEMPLATE = HERE / "template.html"
 DATA_DIR = HERE / "data"
 VENDOR_DIR = HERE / "vendor"
-OUTPUT = HERE / "dist" / "milan_heat_map.html"
+DIST = HERE / "dist"
+SITE = DIST / "site"
+SINGLE = DIST / "milan_heat_map.html"
+OG_IMAGE = HERE / "og.png"  # versioned, made by render_og_image.py
 
-PLACEHOLDERS = {
-    "__DATA_JSON__": DATA_DIR / "exposure.json",
-    "__WAIT_JSON__": DATA_DIR / "wait_time.json",
-    "__MAIN_DATA_JSON__": DATA_DIR / "main.json",
-    "__ROADS_JSON__": None,  # no street-vector data yet -- see docs/MILAN_DATA_DECISIONS.md
-}
+DECK_NAME = "deck.gl-9.4.0.min.js"
+JSON_FILES = {"main": "main.json", "exposure": "exposure.json", "wait": "wait_time.json"}
+IMAGES = {"buildings": "buildings.png", "buildings_deck": "buildings_deck.png"}
 
-IMAGE_PLACEHOLDERS = {
-    "__BUILDINGS_B64__": DATA_DIR / "buildings.png",
-    "__BUILDINGS_DECK_B64__": DATA_DIR / "buildings_deck.png",
-}
+PLACEHOLDERS = [
+    "__DECKGL_TAG__",
+    "__INLINE_DATA__",
+    "__BUILDINGS_URL__",
+    "__BUILDINGS_DECK_URL__",
+]
 
-# deck.gl UMD bundle inlined as a <script> body, not fetched -- this is what
-# keeps the main view working with no network request. `</script` (any case)
-# has to be escaped or it would prematurely close the wrapping <script> tag
-# once this text lands inside template.html.
+# `</script` (any case) inside inlined text would close the wrapping <script>.
 SCRIPT_CLOSE_RE = re.compile(r"</script", re.IGNORECASE)
 
 
-def main() -> None:
-    html = TEMPLATE.read_text(encoding="utf-8")
+def _escape_script(text: str) -> str:
+    return SCRIPT_CLOSE_RE.sub("<\\/script", text)
 
-    for placeholder, path in PLACEHOLDERS.items():
-        value = path.read_text(encoding="utf-8") if path else "[]"
-        html = html.replace(placeholder, value)
 
-    deckgl_js = (VENDOR_DIR / "deck.gl-9.4.0.min.js").read_text(encoding="utf-8")
-    deckgl_js = SCRIPT_CLOSE_RE.sub("<\\/script", deckgl_js)
-    html = html.replace("__DECKGL_JS__", deckgl_js)
-
-    import base64
-
-    for placeholder, path in IMAGE_PLACEHOLDERS.items():
-        b64 = base64.b64encode(path.read_bytes()).decode("ascii")
-        html = html.replace(placeholder, b64)
-
-    known = set(PLACEHOLDERS) | set(IMAGE_PLACEHOLDERS) | {"__DECKGL_JS__"}
-    leftover = sorted(p for p in known if p in html)
+def _fill(template: str, values: dict[str, str]) -> str:
+    # str.replace with a callable-free approach: plain replace is fine, values
+    # are never re-scanned for placeholders because each key is replaced once.
+    for key, value in values.items():
+        template = template.replace(key, value)
+    leftover = [p for p in PLACEHOLDERS if p in template]
     assert not leftover, f"Unfilled placeholders remain: {leftover}"
+    return template
 
-    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text(html, encoding="utf-8")
-    print(f"Wrote {OUTPUT} ({OUTPUT.stat().st_size / 1024 / 1024:.2f} MB)")
+
+def _data_uri(name: str) -> str:
+    return "data:image/png;base64," + base64.b64encode((DATA_DIR / name).read_bytes()).decode("ascii")
+
+
+def build_single(template: str) -> None:
+    deck_js = _escape_script((VENDOR_DIR / DECK_NAME).read_text(encoding="utf-8"))
+    inline = (
+        "{"
+        + ",".join(
+            f'"{key}":{(DATA_DIR / fname).read_text(encoding="utf-8").strip()}'
+            for key, fname in JSON_FILES.items()
+        )
+        + "}"
+    )
+    html = _fill(
+        template,
+        {
+            # deck.gl goes last-ish: it is big, and must not be re-scanned
+            "__BUILDINGS_URL__": _data_uri(IMAGES["buildings"]),
+            "__BUILDINGS_DECK_URL__": _data_uri(IMAGES["buildings_deck"]),
+            "__INLINE_DATA__": _escape_script(inline),
+            "__DECKGL_TAG__": f"<script>{deck_js}</script>",
+        },
+    )
+    SINGLE.parent.mkdir(parents=True, exist_ok=True)
+    SINGLE.write_text(html, encoding="utf-8")
+    print(f"Wrote {SINGLE} ({SINGLE.stat().st_size / 1024 / 1024:.2f} MB)")
+
+
+def build_site(template: str) -> None:
+    if SITE.exists():
+        shutil.rmtree(SITE)
+    (SITE / "data").mkdir(parents=True)
+    (SITE / "vendor").mkdir()
+
+    for fname in [*JSON_FILES.values(), *IMAGES.values()]:
+        shutil.copy2(DATA_DIR / fname, SITE / "data" / fname)
+    shutil.copy2(VENDOR_DIR / DECK_NAME, SITE / "vendor" / DECK_NAME)
+    if OG_IMAGE.exists():
+        shutil.copy2(OG_IMAGE, SITE / "og.png")
+    else:
+        print("note: og.png not found -- run render_og_image.py to create it")
+
+    html = _fill(
+        template,
+        {
+            "__BUILDINGS_URL__": f"data/{IMAGES['buildings']}",
+            "__BUILDINGS_DECK_URL__": f"data/{IMAGES['buildings_deck']}",
+            "__INLINE_DATA__": "null",
+            "__DECKGL_TAG__": f'<script src="vendor/{DECK_NAME}"></script>',
+        },
+    )
+    (SITE / "index.html").write_text(html, encoding="utf-8")
+
+    total = 0
+    for f in sorted(SITE.rglob("*")):
+        if f.is_file():
+            total += f.stat().st_size
+            print(f"  {f.relative_to(SITE)}: {f.stat().st_size / 1024:.0f} KB")
+    print(f"Wrote {SITE} ({total / 1024 / 1024:.2f} MB)")
+
+
+def main() -> None:
+    template = TEMPLATE.read_text(encoding="utf-8")
+    for name in [*JSON_FILES.values(), *IMAGES.values()]:
+        path = DATA_DIR / name
+        assert path.exists() and path.stat().st_size > 0, f"{path} missing or empty"
+        if name.endswith(".json"):
+            json.loads(path.read_text(encoding="utf-8"))  # must parse
+    build_site(template)
+    build_single(template)
 
 
 if __name__ == "__main__":

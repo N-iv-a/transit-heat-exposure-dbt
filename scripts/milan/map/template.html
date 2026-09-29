@@ -1,5 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Milan Heat Exposure</title>
+<meta name="description" content="Bus and tram stops in Milan scored for sun exposure and waiting time during the hottest hours of June 28, 2026.">
+<meta property="og:title" content="Milan Heat Exposure">
+<meta property="og:description" content="Bus and tram stops in Milan scored for sun exposure and waiting time during the hottest hours of June 28, 2026.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://n-iv-a.github.io/transit-heat-exposure-dbt/">
+<meta property="og:image" content="https://n-iv-a.github.io/transit-heat-exposure-dbt/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Milan Heat Exposure">
+<meta name="twitter:description" content="Bus and tram stops in Milan scored for sun exposure and waiting time during the hottest hours of June 28, 2026.">
+<meta name="twitter:image" content="https://n-iv-a.github.io/transit-heat-exposure-dbt/og.png">
 <style>
   :root{
     --bg:#FFFFFF;
@@ -20,7 +36,7 @@
     --ramp-5:#7A1B0E;
     --marker-edge: rgba(26,26,26,0.35);
     --shadow-soft: none;
-    --bg-buildings: url("data:image/png;base64,__BUILDINGS_B64__");
+    --bg-buildings: url("__BUILDINGS_URL__");
     --font-sans: system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
     --font-mono: ui-monospace,SFMono-Regular,"SF Mono",Consolas,monospace;
   }
@@ -129,6 +145,11 @@
   #tooltip.show{opacity:1;}
   #tooltip b{display:block; font-family:var(--font-sans); font-size:12.5px; margin-bottom:2px;}
 
+  .wrap[hidden]{display:none;}
+  #load-status{max-width:640px; margin:12vh auto 0; padding:16px 18px; border:1px solid var(--border);
+    border-radius:10px; font-size:15px; line-height:1.55; color:var(--text-2);}
+  #load-status.error{border-color:#C93A1E; color:var(--text); background:#FFF3EE;}
+  #load-status code{font-family:var(--font-mono); font-size:13px;}
   footer{font-size:12px; color:var(--text-3); text-align:center; padding-top:6px;}
 
   @media (max-width:640px){
@@ -136,8 +157,10 @@
     .legend{flex:1 1 auto;}
   }
 </style>
-
-<div class="wrap">
+</head>
+<body>
+<div id="load-status" role="status" aria-live="polite">Loading map data&hellip;</div>
+<div class="wrap" hidden>
   <header>
     <div class="eyebrow">Transit Heat Exposure &middot; Milano</div>
     <h1>Milan Heat Exposure</h1>
@@ -242,13 +265,52 @@
 
 <div id="tooltip"></div>
 
-<script>__DECKGL_JS__</script>
+__DECKGL_TAG__
 <script>
-const DATA = __DATA_JSON__;
-const ROADS = __ROADS_JSON__;
-const WAIT_DATA = __WAIT_JSON__;
-const MAIN_DATA = __MAIN_DATA_JSON__;
-const BUILDINGS_DECK_B64 = "__BUILDINGS_DECK_B64__";
+// Single template, two builds. Single-file build: the INLINE value below is the
+// data object and nothing is fetched. Site build: it is null and the
+// JSON files are fetched (relative paths).
+const INLINE = __INLINE_DATA__;
+const DATA_FILES = {exposure:'data/exposure.json', wait:'data/wait_time.json', main:'data/main.json'};
+const BUILDINGS_DECK_URL = "__BUILDINGS_DECK_URL__";
+
+async function loadData(){
+  if (INLINE) return INLINE;
+  const names = Object.keys(DATA_FILES);
+  const parts = await Promise.all(names.map(async k => {
+    const r = await fetch(DATA_FILES[k]);
+    if (!r.ok) throw new Error(DATA_FILES[k] + ' -> HTTP ' + r.status);
+    return r.json();
+  }));
+  return Object.fromEntries(names.map((k,i)=>[k, parts[i]]));
+}
+
+function showLoadError(err){
+  const el = document.getElementById('load-status');
+  el.className = 'error'; el.setAttribute('role','alert');
+  const fromFile = location.protocol === 'file:';
+  el.innerHTML = '<b>Could not load the map data.</b><br>' +
+    (fromFile
+      ? 'Browsers block loading data files when a page is opened straight from disk (<code>file://</code>). '
+      : 'A data file could not be fetched. ') +
+    'Use the single-file version (<code>milan_heat_map.html</code>, which needs no server), ' +
+    'or serve this folder over HTTP (for example <code>python3 -m http.server</code>).' +
+    '<br><small id="load-detail"></small>';
+  el.querySelector('#load-detail').textContent = err && err.message ? err.message : String(err);
+}
+
+loadData().then(payload => {
+  if (typeof deck === 'undefined') throw new Error('vendor/deck.gl-9.4.0.min.js not loaded');
+  document.getElementById('load-status').hidden = true;
+  document.querySelector('.wrap').hidden = false;
+  startApp(payload);
+}).catch(err => { console.error(err); showLoadError(err); });
+
+function startApp(payload){
+const DATA = payload.exposure;
+const ROADS = [];
+const WAIT_DATA = payload.wait;
+const MAIN_DATA = payload.main;
 
 const WEATHER_STATIONS = [
   {id:2001, name:'Milano Lambrate',      lo:9.2575154,  la:45.49677982, pctOver30:23.9},
@@ -823,7 +885,7 @@ function buildMainLayers(hour){
   return [
     new deck.BitmapLayer({
       id: 'buildings-backdrop',
-      image: 'data:image/png;base64,' + BUILDINGS_DECK_B64,
+      image: BUILDINGS_DECK_URL,
       bounds: [lonMin, latMin, lonMax, latMax],
       opacity: 0.85,
     }),
@@ -1007,4 +1069,7 @@ ensureDeck();
 updateMainLayers();
 
 window.addEventListener('resize', ()=>{ if (display==='heatmap' || display==='grid') renderHeatmapCanvas(display==='grid'); });
+}
 </script>
+</body>
+</html>

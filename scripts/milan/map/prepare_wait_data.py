@@ -39,7 +39,7 @@ def main() -> None:
         w, nl = [], []
         for h in HOURS:
             if h in hours:
-                w.append(hours[h][0])
+                w.append(round(hours[h][0], 2) if hours[h][0] is not None else None)
                 nl.append(hours[h][1])
             else:
                 w.append(None)

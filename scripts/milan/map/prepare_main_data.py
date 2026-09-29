@@ -68,7 +68,7 @@ def main() -> None:
             }
         )
 
-    bounds = [min(lons), min(lats), max(lons), max(lats)]
+    bounds = [round(min(lons), 5), round(min(lats), 5), round(max(lons), 5), round(max(lats), 5)]
     payload = {"bounds": bounds, "stops": stops}
 
     OUTPUT_JSON.parent.mkdir(parents=True, exist_ok=True)
