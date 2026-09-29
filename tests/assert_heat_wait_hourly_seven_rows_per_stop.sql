@@ -1,6 +1,6 @@
 {#
   Every OSM stop in stg_osm_shelter_stops must have exactly 7 rows (hours
-  12-18) in mart_stop_heat_wait_hourly. Left join from the staging table so
+  13-19) in mart_stop_heat_wait_hourly. Left join from the staging table so
   stops missing altogether (0 rows) are caught too. Fails if it returns
   any rows.
 #}

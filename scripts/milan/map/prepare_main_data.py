@@ -6,8 +6,8 @@ Output `data/main.json`:
       "bounds": [lonMin, latMin, lonMax, latMax],
       "stops": [
         {"id": ..., "n": ..., "lo": ..., "la": ...,
-         "s": [exposure_score x7, hours 12..18],
-         "w": [wait_minutes|null x7, hours 12..18]}
+         "s": [exposure_score x7, hours 13..19],
+         "w": [wait_minutes|null x7, hours 13..19]}
       ]
     }
 
@@ -26,7 +26,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DUCKDB_PATH = PROJECT_ROOT / "gtfs.duckdb"
 OUTPUT_JSON = Path(__file__).resolve().parent / "data" / "main.json"
 
-HOURS = list(range(12, 19))
+HOURS = list(range(13, 20))
 
 QUERY = """
 select osm_node_id, stop_name, lon, lat, hour, exposure_score, wait_minutes

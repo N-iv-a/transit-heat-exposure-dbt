@@ -1,6 +1,6 @@
 {#
   Main mart behind the map (scripts/milan/map/): one row per
-  (osm_node_id, hour), 2,931 OSM stops x 7 hours (12:00-18:00) = 20,517
+  (osm_node_id, hour), 2,931 OSM stops x 7 hours (13:00-19:00 CEST) = 20,517
   rows. Columns, types and semantics are the contract -- see
   contract/map_data.md, section "main.mart_stop_heat_wait_hourly".
 

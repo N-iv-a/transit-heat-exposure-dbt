@@ -1,6 +1,10 @@
 """Compute sun exposure per Milan bus stop, for the critical hours of the
 hottest day of documented summer 2026 (June 28 — see
-docs/MILAN_DATA_DECISIONS.md for why this date and this 12:00-18:00 window).
+docs/MILAN_DATA_DECISIONS.md for why this date and this window).
+
+The window is 13:00-19:00 CEST (UTC+2). The ARPA dataset stamps hours in
+solar time (UTC+1), so its empirical critical window 12-18 is 13-19 CEST
+(see arpa_solar_to_cest()). All hours in this module are CEST.
 
 Two signals are combined:
   - building shadow: a raster-based march toward the sun's position over the
@@ -35,7 +39,9 @@ OUTPUT_CSV = PROJECT_ROOT / "data_milan/seeds/stop_solar_exposure.csv"
 MILAN_LAT, MILAN_LON = 45.4642, 9.1900
 STUDY_DATE = datetime.date(2026, 6, 28)  # hottest day found in the ARPA analysis
 CEST = datetime.timezone(datetime.timedelta(hours=2))
-CRITICAL_HOURS = range(12, 19)  # 12:00-18:00 local time, inclusive
+CRITICAL_HOURS = range(13, 20)  # 13:00-19:00 CEST, inclusive (= ARPA 12-18 solar time)
+ARPA_SOLAR_UTC_OFFSET = datetime.timedelta(hours=1)
+CEST_UTC_OFFSET = datetime.timedelta(hours=2)
 
 STEP_M = 10  # matches raster resolution; no point stepping finer than a pixel
 
@@ -62,6 +68,13 @@ def load_stops(path: Path) -> list[dict]:
             }
         )
     return stops
+
+
+def arpa_solar_to_cest(dt_naive: datetime.datetime) -> datetime.datetime:
+    """ARPA timestamps are in solar time (UTC+1); convert a naive ARPA
+    datetime to naive CEST (UTC+2), i.e. add one hour.
+    """
+    return dt_naive + (CEST_UTC_OFFSET - ARPA_SOLAR_UTC_OFFSET)
 
 
 def solar_position(dt_local: datetime.datetime) -> tuple[float, float]:

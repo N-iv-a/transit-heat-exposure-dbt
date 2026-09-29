@@ -8,6 +8,8 @@ from rasterio.transform import from_origin
 
 from solar_exposure import (
     CEST,
+    CRITICAL_HOURS,
+    arpa_solar_to_cest,
     is_in_building_shadow,
     required_height_at_distance,
     search_radius_for,
@@ -170,3 +172,17 @@ def test_tall_building_beyond_80m_casts_shadow(tmp_path):
         kwargs = dict(azimuth_deg=0, elevation_deg=elevation, raster=raster, band=band, nodata=raster.nodata)
         assert is_in_building_shadow(stop_x, stop_y, search_radius_m=80, **kwargs) is False
         assert is_in_building_shadow(stop_x, stop_y, search_radius_m=radius, **kwargs) is True
+
+
+def test_arpa_solar_time_maps_to_cest_plus_one_hour():
+    assert arpa_solar_to_cest(datetime.datetime(2026, 6, 28, 12, 0)) == datetime.datetime(2026, 6, 28, 13, 0)
+    assert arpa_solar_to_cest(datetime.datetime(2026, 6, 28, 23, 30)) == datetime.datetime(2026, 6, 29, 0, 30)
+
+
+def test_critical_hours_are_arpa_window_in_cest():
+    assert list(CRITICAL_HOURS) == [13, 14, 15, 16, 17, 18, 19]
+
+
+def test_sun_still_high_at_19_cest_on_study_day():
+    _, elevation = solar_position(datetime.datetime(2026, 6, 28, 19, 0, tzinfo=CEST))
+    assert elevation > 15
