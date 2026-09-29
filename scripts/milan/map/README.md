@@ -21,17 +21,18 @@ pip install -r ../requirements.txt
 python3 ../../../ingestion/load_milan.py
 cd ../../.. && dbt run --profiles-dir . --select source:raw_milan+ && cd scripts/milan/map
 
-python prepare_main_data.py           # -> data/main.json (main deck.gl view)
-python prepare_exposure_data.py       # -> data/exposure.json
-python prepare_wait_data.py           # -> data/wait_time.json
+python prepare_main_data.py           # -> data/main.json (all OSM-stop views: exposure, wait, departures, bounds)
+python prepare_exposure_data.py       # -> data/exposure.json (ids of sheltered stops)
+python prepare_wait_data.py           # -> data/wait_time.json (GTFS stops, Wait view)
 python prepare_tree_data.py           # -> data/trees.json (build_map.py runs it too)
-python render_building_backdrop.py    # -> data/buildings.png, data/buildings_deck.png
+python render_building_backdrop.py    # -> data/buildings_deck.png (backdrop)
+python render_shadow_layers.py        # -> data/shadow_13.png .. shadow_19.png (build_map.py runs it too)
 python build_map.py                   # -> dist/site/ (static site) + dist/milan_heat_map.html (single file)
 ```
 
-`prepare_main_data.py` must run before `render_building_backdrop.py`: the
-deck.gl backdrop (`data/buildings_deck.png`) is rendered over the exact
-bounds in `data/main.json`. This is also the order `.claude/loop.json`'s
+`prepare_main_data.py` must run before `render_building_backdrop.py` and
+`render_shadow_layers.py`: backdrop and shadow images are rendered over the exact
+bounds in `data/main.json`, so they line up with each other and with the stops. This is also the order `.claude/loop.json`'s
 frontend build command uses.
 
 `build_map.py` always writes both outputs from the same `template.html`:
@@ -63,27 +64,59 @@ render_og_image.py`.
 `data/` and `dist/` are gitignored: both are generated from `gtfs.duckdb`
 (itself built from the seeds in `data_milan/seeds/`), not source.
 
-## Known aesthetic issues (deferred — noted, not forgotten)
+## The page (T17, see `contract/map_data.md`)
+
+One deck.gl map shared by four views (same map, controls and layout; only the
+layers and the legend change): **Sun x wait** (start view), **Exposure**,
+**Wait**, **Trees**. Hour selector (13:00-19:00 + average; hidden in Trees) and a
+**Heatmap** toggle (HeatmapLayer weighted by the view's metric) are common.
+
+- Sun x wait: dot colour = `exposed_wait_minutes` in 5 quantile classes (YlOrRd,
+  breaks computed in the page from all stop-hours, real minutes in the legend),
+  radius = `n_departures` (square root, 2.5-9 px). Hollow grey circle = OSM stop
+  not linked to a GTFS stop; small grey dot = linked but no service that hour.
+  Top-20 priority list under the map (clickable: centres and highlights the stop).
+- Exposure: colour = `exposure_score` (hour) or its mean (average; tooltip shows the 0-7 sum).
+- Building shadow for the selected hour (Sun x wait and Exposure): 7 PNGs made by
+  `render_shadow_layers.py` (same algorithm as `solar_exposure.py`, vectorized;
+  imports its sun position and search-radius functions). Average = the 7 overlaid.
+- Sun compass only in Sun x wait and Exposure. Dashed ring = `risk_level_stable` false.
+- Tooltip: stop details plus a strip with the 7 hours (score and wait minutes).
+- Colour scales are sequential and colour-blind safe (no red/green pair).
+
+Sizes (measured): site ~7.4 MB (trees.json 3.2 MB, shadow PNGs ~0.45 MB together);
+single file ~9.4 MB, shadows included. `build_map.py` drops the shadows from the
+single file only if it would exceed 13 MB.
+
+## Tests
+
+- `python3 -m pytest -q scripts/milan/map`: the vectorized shadow mask against
+  the scalar reference in `solar_exposure.py`.
+- `node smoke_test.mjs [screenshot_dir]` (needs node Playwright, e.g.
+  `NODE_PATH=/opt/node22/lib/node_modules PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`):
+  opens site and single file at 1200 and 375 px and checks console errors, views,
+  Heatmap toggle, compass, shadow per hour, tooltip strip, priority list.
+- og.png was regenerated with the same Playwright (screenshot of the site at
+  1200x627); `render_og_image.py` does the same with python Playwright.
+
+## Known aesthetic issues (deferred)
 
 - **No live street/photo basemap.** Tile servers aren't reachable from a
-  published Claude artifact or from the sandbox this was built in (see
-  `docs/MILAN_DATA_DECISIONS.md`, §4). Current backdrop is the project's own
-  building-height raster instead. A road-vector alternative (OSM ways via
-  Overpass, drawn as thin lines) was offered and not yet pursued — export
-  attempt via chat upload didn't come through as a usable file.
-- **Wait-time map has no backdrop at all.** Different, larger bounding box
-  than the exposure map's OSM stops (GTFS stops extend further out) — the
-  backdrop would need regenerating at that extent, not reused as-is.
+  published Claude artifact or from the sandbox (see `docs/MILAN_DATA_DECISIONS.md`,
+  section 4); the backdrop is the project's own building-height raster.
 
 ## Files
 
 | File | Role |
 |---|---|
 | `template.html` | The page itself — versioned source of truth. Has `__PLACEHOLDER__` markers where data gets injected. |
-| `prepare_exposure_data.py` | `stop_solar_exposure.csv` + OSM shelter geojson → `data/exposure.json` |
-| `prepare_wait_data.py` | `stop_wait_time.csv` → `data/wait_time.json` |
-| `prepare_tree_data.py` | `mart_trees_map` → `data/trees.json` (columnar, quantized; run by `build_map.py`, loaded on demand by the Trees view) |
-| `render_building_backdrop.py` | Building-height raster → `data/buildings.png`, projected to match `template.html`'s own map projection |
+| `prepare_main_data.py` | `mart_stop_heat_wait_hourly` -> `data/main.json` (all views on OSM stops) |
+| `prepare_exposure_data.py` | sheltered stop ids -> `data/exposure.json` (tooltip only) |
+| `prepare_wait_data.py` | `int_stop_wait_time` -> `data/wait_time.json` |
+| `prepare_tree_data.py` | `mart_trees_map` -> `data/trees.json` (columnar, quantized; loaded on demand by the Trees view) |
+| `render_building_backdrop.py` | Building-height raster -> `data/buildings_deck.png` |
+| `render_shadow_layers.py` | Raster + sun position -> `data/shadow_13..19.png` (transparent, same bounds as the backdrop) |
+| `test_render_shadow_layers.py`, `smoke_test.mjs` | pytest for the shadow mask; browser smoke test |
 | `build_map.py` | Fills the template's placeholders, writes `dist/site/` and `dist/milan_heat_map.html` |
 | `render_og_image.py` | Manual: screenshots the site to `og.png` (versioned) |
 | `og.png` | Social preview image, copied into `dist/site/` |
