@@ -31,7 +31,7 @@ Ogni assunzione è dichiarata, non nascosta; i limiti sono parte del risultato.
 
 ## Regole teoriche applicate
 1. **Posizione del sole** (pysolar): azimut ed elevazione per fermata e ora, ora legale CEST.
-2. **Ombra degli edifici** (ray marching sul raster): dalla fermata verso il sole a passi di 10 m fino a 80 m; la fermata è in ombra se a distanza *d* c'è un edificio più alto di *d · tan(elevazione)*. Errore dichiarato: oltre 80 m sfuggono edifici > 71 m alle 17:00 e > 49 m alle 18:00; nessuno alle 12–16 (l'edificio più alto misura 125 m).
+2. **Ombra degli edifici** (ray marching sul raster): dalla fermata verso il sole a passi di 10 m; la fermata è in ombra se a distanza *d* c'è un edificio più alto di *d · tan(elevazione)*. Il raggio di ricerca è calcolato per ora come altezza massima del raster (125 m) / tan(elevazione), da 60 m (13–14) a 210 m (18:00): nessun edificio del raster può fare ombra oltre il raggio.
 3. **Punteggio di esposizione orario**: ombra di edificio **0**; sole con pensilina **0,5** (`shelter_exposure_factor`: la pensilina attenua ma non rinfresca come un'ombra vera); sole senza pensilina **1**. La lettura binaria originale (esposta = né ombra né pensilina) resta nelle colonne `_binary`.
 4. **Rischio calore per fermata**: somma dei punteggi sulle 7 ore (0–7); alto ≥ 5, basso ≤ 1, medio altrimenti.
 5. **Attesa per fermata e ora**: per linea, mediana degli intervalli tra partenze nell'ora, divisa per 2; poi mediana tra le linee della fermata; gli intervalli > 3 h (ultime corse) sono esclusi.
@@ -45,13 +45,13 @@ Ogni assunzione è dichiarata, non nascosta; i limiti sono parte del risultato.
 - Milano: `mart_stop_heat_risk` (rischio calore per fermata), `int_stop_wait_time` (attesa per fermata e ora), `int_osm_gtfs_stop_bridge` (collegamento degli ID), `mart_stop_heat_wait` (calore × attesa per fermata).
 
 **Risultati principali (Milano)**
-- 1.056 fermate su 2.931 ad alto rischio calore (724 con la lettura binaria), 91 a basso rischio.
+- 1.056 fermate su 2.931 ad alto rischio calore (722 con la lettura binaria), 91 a basso rischio.
 - Attesa al sole mediana: 8,9 min per le fermate ad alto rischio (p90 11,6), 4,2 per il medio, 1,0 per il basso.
 - 2.591 fermate collegate al GTFS (2.466 per `ref`, 125 per prossimità), 340 senza abbinamento.
 
 **Mappa**: `scripts/milan/map/dist/milan_heat_map.html`, pagina HTML autocontenuta (~6 MB: dati, sfondo edifici e deck.gl incorporati). Vista principale 3D **Calore × attesa**: una colonna per fermata, altezza = attesa (tetto 25 min), colore = punteggio di esposizione, ora per ora o media 12–18; sotto-viste Esposizione e Attesa. Legge da dbt (`contract/map_data.md`).
 
-**Test**: data test dbt (unicità, valori ammessi, soglie di distanza, punteggio valido) e 7 test pytest sul calcolo dell'ombra.
+**Test**: data test dbt (unicità, valori ammessi, soglie di distanza, punteggio valido) e 9 test pytest sul calcolo dell'ombra.
 
 ## Fuori scope (per ora)
 Più giorni oltre il 28 giugno; alberi; seconda rete milanese (Trenord); mappa stradale di sfondo; aggiornamenti incrementali e orchestratore.

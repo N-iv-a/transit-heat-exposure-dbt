@@ -189,12 +189,12 @@ visible in the final README rather than smoothing it away.
 ## 6. Shadow-casting implementation and its error margin
 
 **Script:** `scripts/milan/solar_exposure.py`, tested by
-`scripts/milan/test_solar_exposure.py` (7 tests, all passing).
+`scripts/milan/test_solar_exposure.py` (9 tests, all passing).
 
 **Method:** for each stop and each hour, get sun azimuth/elevation via
 `pysolar`, then march from the stop toward the sun over the building-height
 raster (reprojected stop coordinates via `pyproj`, EPSG:4326 → EPSG:3035)
-in 10m steps up to `SEARCH_RADIUS_M = 80`. At each step, a building is
+in 10m steps up to a per-hour radius (see below). At each step, a building is
 considered tall enough to cast a shadow back to the stop if its height
 exceeds `distance * tan(solar elevation)`. First hit along the ray wins.
 
@@ -202,25 +202,25 @@ exceeds `distance * tan(solar elevation)`. First hit along the ray wins.
 arbitrary solstice pick. Hours: 12:00–18:00 local (CEST), matching the
 empirical critical window from §5.
 
-**Error margin, computed and printed by the script itself, not asserted
-after the fact:**
+**Search radius (no fixed cap):** for each hour the march goes out to
+`max raster height / tan(elevation)`, rounded up to the next 10m step
+(`search_radius_for()`). The raster's tallest building is 125m, so no
+building can cast a shadow beyond that radius and truncation misses
+nothing. The previous fixed 80m cap could miss shadows at 17:00 and 18:00.
+Radius per hour, printed by the script:
 
-| Hour | Elevation | Max height missable beyond 80m |
+| Hour | Elevation | Search radius |
 |---|---|---|
-| 12:00 | 61.7° | 149m |
-| 13:00 | 67.2° | 190m |
-| 14:00 | 66.8° | 187m |
-| 15:00 | 60.8° | 143m |
-| 16:00 | 51.9° | 102m |
-| 17:00 | 41.8° | 71m |
-| 18:00 | 31.3° | 49m |
+| 12:00 | 61.7° | 70m |
+| 13:00 | 67.2° | 60m |
+| 14:00 | 66.8° | 60m |
+| 15:00 | 60.8° | 70m |
+| 16:00 | 51.9° | 100m |
+| 17:00 | 41.8° | 140m |
+| 18:00 | 31.3° | 210m |
 
-The raster's tallest building is 125m. So for 12:00–16:00, the truncation
-at 80m cannot miss anything in this dataset — the required height to be
-missed already exceeds what exists. Real (bounded) risk of under-detecting
-shadow starts at 17:00 (buildings >71m beyond 80m) and is largest at 18:00
-(buildings >49m beyond 80m). This is a declared limitation of the last two
-hours in the window, not the whole result.
+Effect vs. the 80m cap: only 2 (stop, hour) rows changed, both at 18:00
+(not exposed any more); the aggregate stays 37.4%.
 
 **Result on the real data (2,931 stops × 7 hours = 20,517 rows):**
 
@@ -229,7 +229,7 @@ hours in the window, not the whole result.
   solar noon (13:00–14:00, sun nearly overhead → short shadows), rising to
   32.4% by 18:00 (low sun → long shadows) — the model responds to solar
   geometry the way it should, not noise
-- **724 stops (25%) are exposed at every one of the 7 hours** — never
+- **722 stops (25%) are exposed at every one of the 7 hours** — never
   shadowed by a building, never sheltered. These are the actionable
   finding: candidates for shelter/shade investment.
 - 1,612 stops (55%) are never exposed in the window (shadowed at some
@@ -339,7 +339,7 @@ equivalent to `data/raw/` and no per-agency file list to iterate.
   it to `exposure_score_hours` (0–7) and `risk_level` (`high` ≥ 5, `low`
   ≤ 1, else `medium`): 1,056 high / 1,784 medium / 91 low. The original
   binary reading is kept as `hours_exposed_binary` / `risk_level_binary`
-  (`high` = exposed all 7 hours — the 724-stop finding from §6).
+  (`high` = exposed all 7 hours — the 722-stop finding from §6).
 - `mart_stop_heat_wait_hourly` — stop × hour (20,517 rows), the map's
   data source; columns fixed by `contract/map_data.md`.
 - `int_osm_gtfs_stop_bridge` — one row per OSM stop (from the OSM export,
@@ -363,7 +363,7 @@ equivalent to `data/raw/` and no per-agency file list to iterate.
   a singular uniqueness test (`assert_stg_stop_solar_exposure_unique_node_hour.sql`,
   mirroring `assert_fct_trips_unique_trip_date.sql`'s pattern) and
   `unique`/`not_null` on `mart_stop_heat_risk.osm_node_id`. All pass;
-  `mart_stop_heat_risk`'s risk_level_binary counts (724 high / 595 medium /
+  `mart_stop_heat_risk`'s risk_level_binary counts (722 high / 597 medium /
   1,612 low) match §6's findings exactly; `assert_exposure_score_valid.sql`
   pins the hourly score to {0, factor, 1}.
 
