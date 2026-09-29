@@ -24,6 +24,7 @@ with exposure as (
         osm_node_id,
         hour,
         in_building_shadow,
+        in_tree_shadow,
         has_shelter,
         exposure_score
 
@@ -60,7 +61,7 @@ wait_time as (
 
 risk as (
 
-    select osm_node_id, risk_level, risk_level_stable, exposure_decile
+    select osm_node_id, risk_level, risk_level_stable, exposure_decile, tree_shade_hours, n_trees_20m
     from {{ ref('mart_stop_heat_risk') }}
 
 )
@@ -72,6 +73,7 @@ select
     s.lat,
     e.hour,
     e.in_building_shadow,
+    e.in_tree_shadow,
     e.has_shelter,
     e.exposure_score,
     b.gtfs_stop_id,
@@ -83,7 +85,9 @@ select
     e.exposure_score * w.wait_mixed_minutes as exposed_wait_minutes,
     r.risk_level,
     r.exposure_decile,
-    r.risk_level_stable
+    r.risk_level_stable,
+    r.tree_shade_hours,
+    r.n_trees_20m
 
 from exposure e
 inner join shelter_stops s on e.osm_node_id = s.osm_node_id

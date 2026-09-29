@@ -12,6 +12,9 @@ models:
           - accepted_values:
               arguments:
                 values: [13, 14, 15, 16, 17, 18, 19]
+      - name: in_tree_shadow
+        tests:
+          - not_null
       - name: exposure_score
         tests:
           - not_null
@@ -22,3 +25,18 @@ models:
         tests:
           - not_null
           - unique
+
+  - name: stg_milan_trees
+    description: >
+      Municipal tree census with is_valid (height 1-45 m, crown 0.5-30 m,
+      coordinates present; same thresholds as solar_exposure.py).
+    columns:
+      - name: tree_id
+        tests:
+          - not_null
+      - name: is_valid
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [true, false]

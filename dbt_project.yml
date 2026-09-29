@@ -27,6 +27,10 @@ vars:
   sync_share_max: 0.5      # max share of riders who time arrival to the timetable
   sync_wait_minutes: 2     # wait of those riders, capped at headway/2
 
+  # Share of direct sun transmitted by a tree crown (T15). Konarska et al. 2014,
+  # Theoretical and Applied Climatology 117, 363-376: 1.3-5.3% of global radiation.
+  tree_transmissivity: 0.03
+
   # Sensitivity grids (T13, docs/MILAN_DATA_DECISIONS.md sections 6 and 7.1).
   # Shelter factor > 1 = closed shelter that worsens heat stress (Lanza et al. 2025).
   shelter_factor_grid: [0, 0.25, 0.5, 0.75, 1.0, 1.2]

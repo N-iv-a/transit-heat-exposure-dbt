@@ -16,6 +16,10 @@ sources:
           day found in the ARPA analysis), hours 13-19 CEST (the empirical
           critical window). stop_id here is an OSM node id ("node/12345"),
           not a GTFS stop_id -- see stop_wait_time below.
+      - name: stop_tree_shade
+        description: >
+          One row per (OSM stop node, hour) in tree crown shadow, with the
+          nearest tree casting it (tree_id). From solar_exposure.py (T15).
       - name: stop_wait_time
         description: >
           One row per (GTFS stop_id, hour), median expected wait time
@@ -30,3 +34,10 @@ sources:
           Overpass export), keyed by osm_node_id ("node/12345"). ref is the
           OSM tag meant to mirror the GTFS stop_id, when mapped; not always
           present or accurate -- see int_osm_gtfs_stop_bridge.sql.
+      - name: trees
+        description: >
+          Census of municipal trees of Milan (Comune di Milano, ds2484,
+          extraction 2025-03-31), from data_milan/seeds/trees/
+          alberi_milano_20250331.csv.gz (built by
+          scripts/milan/prepare_tree_seed.py). Unfiltered: plausibility
+          filters are in stg_milan_trees. Municipal trees only.

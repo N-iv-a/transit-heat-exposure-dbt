@@ -6,13 +6,22 @@ The window is 13:00-19:00 CEST (UTC+2). The ARPA dataset stamps hours in
 solar time (UTC+1), so its empirical critical window 12-18 is 13-19 CEST
 (see arpa_solar_to_cest()). All hours in this module are CEST.
 
-Two signals are combined:
+Three signals are combined:
   - building shadow: a raster-based march toward the sun's position over the
     Copernicus Urban Atlas Building Height 2012 raster (10m, EPSG:3035)
+  - tree shadow (T15): municipal trees (ds2484 census) modelled as vertical
+    cylinders (radius = crown_diameter/2, from height*CROWN_BASE_FRACTION up
+    to height). A stop not already in building shadow is `in_tree_shadow` if
+    the ray stop -> sun crosses at least one cylinder.
   - stop shelter: the OSM `shelter` tag on the stop itself
 
-A stop is "exposed" at a given hour if it is NOT in building shadow AND has
-no shelter.
+A stop is "exposed" at a given hour if it is NOT in building shadow AND NOT
+in tree shadow AND has no shelter.
+
+Tree validity thresholds (TREE_*) are the same as in
+models/staging/milan/stg_milan_trees.sql (is_valid): keep them in sync.
+Besides the exposure seed, a small seed stop_tree_shade.csv records, for each
+(stop, hour) in tree shadow, the nearest tree that casts it.
 
 Search radius: the shadow march is not capped at a fixed distance. For each
 hour the radius is max_raster_height / tan(elevation), rounded up to the next
@@ -22,6 +31,7 @@ printed for every hour computed.
 """
 
 import csv
+import gzip
 import datetime
 import math
 from pathlib import Path
@@ -35,6 +45,13 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 HEIGHT_RASTER = PROJECT_ROOT / "data_milan/seeds/building_height/IT002_MILANO_UA2012_DHM_V010.tif"
 STOPS_GEOJSON = PROJECT_ROOT / "data_milan/seeds/osm_shelter/export_shelter_milano.geojson"
 OUTPUT_CSV = PROJECT_ROOT / "data_milan/seeds/stop_solar_exposure.csv"
+TREES_SEED = PROJECT_ROOT / "data_milan/seeds/trees/alberi_milano_20250331.csv.gz"
+TREE_SHADE_CSV = PROJECT_ROOT / "data_milan/seeds/stop_tree_shade.csv"
+
+# Tree plausibility thresholds: same as stg_milan_trees.is_valid.
+TREE_HEIGHT_RANGE_M = (1.0, 45.0)
+TREE_CROWN_RANGE_M = (0.5, 30.0)
+CROWN_BASE_FRACTION = 1 / 3  # crown starts at this fraction of tree height
 
 MILAN_LAT, MILAN_LON = 45.4642, 9.1900
 STUDY_DATE = datetime.date(2026, 6, 28)  # hottest day found in the ARPA analysis
@@ -129,8 +146,121 @@ def is_in_building_shadow(
     return False
 
 
+def load_trees(path: Path = TREES_SEED) -> dict[str, np.ndarray]:
+    """Valid trees (same filters as stg_milan_trees), projected to EPSG:3035.
+    Returns arrays x, y, radius, base, top and ids (object array of str).
+    """
+    ids, h, cd, lon, lat = [], [], [], [], []
+    with gzip.open(path, "rt", newline="") as f:
+        for r in csv.DictReader(f):
+            try:
+                hh, cc = float(r["height_m"]), float(r["crown_diameter_m"])
+                lo, la = float(r["lon"]), float(r["lat"])
+            except ValueError:
+                continue  # missing height / crown / coordinate
+            if not (TREE_HEIGHT_RANGE_M[0] <= hh <= TREE_HEIGHT_RANGE_M[1]):
+                continue
+            if not (TREE_CROWN_RANGE_M[0] <= cc <= TREE_CROWN_RANGE_M[1]):
+                continue
+            ids.append(r["tree_id"])
+            h.append(hh)
+            cd.append(cc)
+            lon.append(lo)
+            lat.append(la)
+    x, y = WGS84_TO_RASTER_CRS.transform(np.array(lon), np.array(lat))
+    h = np.array(h)
+    return {
+        "id": np.array(ids, dtype=object),
+        "x": np.asarray(x),
+        "y": np.asarray(y),
+        "radius": np.array(cd) / 2,
+        "base": h * CROWN_BASE_FRACTION,
+        "top": h,
+    }
+
+
+class TreeIndex:
+    """Uniform grid over tree centres (numpy only). Cell size = query radius,
+    so a query looks at the 3x3 neighbouring cells."""
+
+    def __init__(self, trees: dict[str, np.ndarray], cell_m: float):
+        self.trees = trees
+        self.cell = cell_m
+        cx = np.floor(trees["x"] / cell_m).astype(np.int64)
+        cy = np.floor(trees["y"] / cell_m).astype(np.int64)
+        keys = cx * 1_000_003 + cy
+        order = np.argsort(keys, kind="stable")
+        sk = keys[order]
+        uniq, start = np.unique(sk, return_index=True)
+        end = np.append(start[1:], len(sk))
+        self.cells = {int(k): order[a:b] for k, a, b in zip(uniq, start, end)}
+
+    def candidates(self, x: float, y: float) -> np.ndarray:
+        cx, cy = int(math.floor(x / self.cell)), int(math.floor(y / self.cell))
+        parts = [
+            self.cells[k]
+            for dx in (-1, 0, 1)
+            for dy in (-1, 0, 1)
+            if (k := (cx + dx) * 1_000_003 + (cy + dy)) in self.cells
+        ]
+        return np.concatenate(parts) if parts else np.empty(0, dtype=np.int64)
+
+
+def tree_shadow_source(
+    stop_x: float,
+    stop_y: float,
+    azimuth_deg: float,
+    elevation_deg: float,
+    index: TreeIndex,
+    search_radius_m: float,
+):
+    """Index (into the tree arrays) of the nearest tree whose crown cylinder is
+    crossed by the ray stop -> sun, or None. Ray horizontal direction d, height
+    at distance t is t*tan(elevation). The ray is inside a cylinder's circle for
+    t in [t0-half, t0+half] (t0 = projection of the centre on d); it crosses the
+    cylinder if the ray heights over that interval (clipped to t >= 0) overlap
+    [base, top].
+    """
+    if elevation_deg <= 0:
+        return None
+    tr = index.trees
+    idx = index.candidates(stop_x, stop_y)
+    if idx.size == 0:
+        return None
+    az = math.radians(azimuth_deg)
+    dx, dy = math.sin(az), math.cos(az)
+    tan_e = math.tan(math.radians(elevation_deg))
+    cx = tr["x"][idx] - stop_x
+    cy = tr["y"][idx] - stop_y
+    r = tr["radius"][idx]
+    t0 = cx * dx + cy * dy
+    perp2 = cx * cx + cy * cy - t0 * t0
+    inside = perp2 <= r * r
+    half = np.sqrt(np.where(inside, r * r - perp2, 0.0))
+    t_lo = np.maximum(t0 - half, 0.0)
+    t_hi = t0 + half
+    hit = (
+        inside
+        & (t_hi > 0)
+        & (t_lo <= search_radius_m)
+        & (t_lo * tan_e <= tr["top"][idx])
+        & (t_hi * tan_e >= tr["base"][idx])
+    )
+    if not hit.any():
+        return None
+    cand = np.flatnonzero(hit)
+    return int(idx[cand[np.argmin(t_lo[cand])]])
+
+
+def is_in_tree_shadow(*args, **kwargs) -> bool:
+    return tree_shadow_source(*args, **kwargs) is not None
+
+
 def main() -> None:
     stops = load_stops(STOPS_GEOJSON)
+    trees = load_trees()
+    print(f"Loaded {len(trees['id'])} valid trees")
+    max_tree_top = float(trees["top"].max())
     print(f"Loaded {len(stops)} stops ({sum(s['has_shelter'] for s in stops)} with shelter=yes)")
 
     with rasterio.open(HEIGHT_RASTER) as raster:
@@ -140,6 +270,7 @@ def main() -> None:
         max_height = float(valid.max())
 
         rows = []
+        shade_rows = []
         for hour in CRITICAL_HOURS:
             dt_local = datetime.datetime.combine(STUDY_DATE, datetime.time(hour, 0), tzinfo=CEST)
             azimuth, elevation = solar_position(dt_local)
@@ -150,10 +281,19 @@ def main() -> None:
                 f"search radius {radius:.0f}m (max raster height {max_height:.0f}m)"
             )
 
+            tree_radius = max_tree_top / math.tan(math.radians(elevation))
+            index = TreeIndex(trees, max(tree_radius, 1.0))
+
             for stop in stops:
                 x, y = WGS84_TO_RASTER_CRS.transform(stop["lon"], stop["lat"])
                 in_shadow = is_in_building_shadow(x, y, azimuth, elevation, raster, band, nodata, radius)
-                exposed = not in_shadow and not stop["has_shelter"]
+                tree_idx = None if in_shadow else tree_shadow_source(x, y, azimuth, elevation, index, tree_radius)
+                in_tree = tree_idx is not None
+                if in_tree:
+                    shade_rows.append(
+                        {"stop_id": stop["stop_id"], "hour": hour, "tree_id": trees["id"][tree_idx]}
+                    )
+                exposed = not in_shadow and not in_tree and not stop["has_shelter"]
                 rows.append(
                     {
                         "stop_id": stop["stop_id"],
@@ -161,6 +301,7 @@ def main() -> None:
                         "solar_azimuth": round(azimuth, 1),
                         "solar_elevation": round(elevation, 1),
                         "in_building_shadow": in_shadow,
+                        "in_tree_shadow": in_tree,
                         "has_shelter": stop["has_shelter"],
                         "exposed": exposed,
                     }
@@ -171,6 +312,12 @@ def main() -> None:
         writer = csv.DictWriter(f, fieldnames=rows[0].keys())
         writer.writeheader()
         writer.writerows(rows)
+
+    with open(TREE_SHADE_CSV, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["stop_id", "hour", "tree_id"])
+        writer.writeheader()
+        writer.writerows(shade_rows)
+    print(f"Wrote {len(shade_rows)} tree-shade rows to {TREE_SHADE_CSV}")
 
     n_exposed = sum(r["exposed"] for r in rows)
     print(f"\nWrote {len(rows)} rows to {OUTPUT_CSV}")

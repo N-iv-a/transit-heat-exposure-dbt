@@ -65,9 +65,10 @@ model: building height alone only captures the "urban canyon" effect and
 misses two things that often matter more at a single stop: street trees and
 the stop's own shelter structure.
 
-**Ruled out: tree canopy (OSM `natural=tree`, `landuse=forest`).** Even
+**Ruled out: tree canopy from OSM (`natural=tree`, `landuse=forest`).** Even
 patchier than `building:levels` for individual street trees — risk of
-adding noise rather than signal. Not used.
+adding noise rather than signal. Not used. Trees are instead modelled from
+the municipal census, see §3.1 (T15).
 
 **Chosen: OSM `shelter` tag on bus stop nodes.** Verified via Overpass API
 (query run by the user via overpass-turbo.eu, since this sandbox's network
@@ -83,6 +84,47 @@ This is the most direct, most reliable signal in the whole dataset — more so
 than inferring shade from building geometry — and will be used as a second
 input layer alongside the building-height-based shadow calculation, not a
 replacement for it.
+
+### 3.1 Alberi comunali (T15)
+
+**Incluso**, con una fonte migliore di OSM: censimento alberi del Comune di
+Milano, dataset ds2484 ("Alberi - localizzazione", estrazione 31/03/2025,
+https://dati.comune.milano.it/dataset/ds2484_infogeo_alberi_localizzazione;
+**licenza da verificare** sulla scheda del dataset). 251.165 alberi. Il CSV
+grezzo (`data_milan/raw/trees/`, non versionato) è ridotto da
+`scripts/milan/prepare_tree_seed.py` a
+`data_milan/seeds/trees/alberi_milano_20250331.csv.gz` (3,2 MB: tree_id =
+obj_id, genere, specie, altezza, chioma, lon, lat a 6 decimali, nessun filtro).
+
+- **Filtri di plausibilità** (`stg_milan_trees.is_valid`, costanti `TREE_*` in
+  `solar_exposure.py`): altezza 1–45 m, chioma 0,5–30 m, coordinate presenti.
+  Validi 248.073, esclusi 3.092 (1,2%): altezza mancante 980, chioma mancante
+  1.691, altezza < 1 m 226 o > 45 m 7, chioma < 0,5 m 1.363 o > 30 m 11 (le
+  categorie si sovrappongono).
+- **Modello**: la chioma è un cilindro verticale, raggio = chioma/2, da
+  1/3 dell'altezza (`CROWN_BASE_FRACTION`) fino all'altezza. Una fermata non
+  già in ombra di edificio è `in_tree_shadow` se il raggio fermata → sole
+  attraversa almeno un cilindro (proiezione ≥ 0, distanza perpendicolare ≤
+  raggio, altezza del raggio dentro [base, cima] nell'intervallo in cui è
+  dentro il cerchio della chioma). Raggio di ricerca = altezza massima albero /
+  tan(elevazione), con indice a griglia in numpy. Il seed `stop_tree_shade.csv`
+  registra l'albero più vicino che fa ombra (`shades_stop` è esatto ma indica
+  solo quell'albero).
+- **Trasmissività**: `var('tree_transmissivity', 0.03)`: la chioma lascia
+  passare il 3% del sole (Konarska et al. 2014, Theoretical and Applied
+  Climatology 117, 363–376: 1,3–5,3%). `exposure_score` = 0 ombra edificio,
+  0,03 ombra chioma, `shelter_exposure_factor` pensilina al sole, 1 sole
+  pieno. Ombra di edificio ha la precedenza (mai entrambe).
+- **Limiti**: solo alberi comunali (non privati, parchi gestiti da altri,
+  cortili); chioma cilindrica (sovrastima gli angoli, ignora la forma e la
+  densità fogliare); nessuna stagionalità né potatura; dati al 2025 su ombra
+  del 2026.
+- **Effetto** (28/06/2026, 13–19 CEST): 1.675 coppie (fermata, ora) in ombra
+  di chioma su 20.517; 656 fermate su 2.931 con `tree_shade_hours` > 0 (max
+  7); 1.556 fermate con almeno un albero entro 20 m; 915 alberi su 248.073
+  fanno ombra a una fermata. Coppie esposte 34,9% → 32,6%. Fermate `high`
+  941 → 854 (medium 1.831, low 246). Attesa al sole mediana delle `high`
+  (modello misto) 5,3 → 5,2 min.
 
 ## 4. Shadow-casting method
 
@@ -243,6 +285,7 @@ Radius per hour, printed by the script:
 **Result on the real data (2,931 stops × 7 hours = 20,517 rows):**
 
 - % of (stop, hour) pairs exposed (no shadow, no shelter): 34.9% overall
+  before trees (T15: 32.6% with trees, see §3.1)
   (42.6% at 13:00 down to 22.2% at 19:00)
 - Physically sane pattern: only 4.9–5.4% of stops are in building shadow at
   solar noon (13:00–14:00, sun nearly overhead → short shadows), rising to
@@ -421,12 +464,18 @@ equivalent to `data/raw/` and no per-agency file list to iterate.
   ramp uses).
 - `mart_stop_heat_risk` — grain change from `stg_stop_solar_exposure`
   (stop × hour) to stop. Per hour, `exposure_score` (in staging) is 0 in
-  building shadow, `var('shelter_exposure_factor', 0.5)` in the sun under a
+  building shadow, `var('tree_transmissivity', 0.03)` in tree crown shadow,
+  `var('shelter_exposure_factor', 0.5)` in the sun under a
   shelter, 1 in unsheltered sun (see "Still open", decided). The mart sums
   it to `exposure_score_hours` (0–7) and `risk_level` (`high` ≥ 5, `low`
-  ≤ 1, else `medium`): 941 high / 1,835 medium / 155 low. The original
+  ≤ 1, else `medium`): 941 high / 1,835 medium / 155 low (before T15; with
+  tree shadow, weight `tree_transmissivity`: 854 / 1,831 / 246). The original
   binary reading is kept as `hours_exposed_binary` / `risk_level_binary`
   (`high` = exposed all 7 hours — the 562-stop finding from §6).
+- `stg_milan_trees` / `mart_trees_map` / `int_stop_tree_counts` (T15): tree
+  census with `is_valid`, valid trees with `shades_stop`, trees within 20 m
+  per stop (`n_trees_20m`); `tree_shade_hours` and `n_trees_20m` are columns of
+  `mart_stop_heat_risk` and `mart_stop_heat_wait_hourly`.
 - `mart_stop_heat_wait_hourly` — stop × hour (20,517 rows), the map's
   data source; columns fixed by `contract/map_data.md`.
 - `int_osm_gtfs_stop_bridge` — one row per OSM stop (from the OSM export,
@@ -443,7 +492,8 @@ equivalent to `data/raw/` and no per-agency file list to iterate.
   `mart_stop_heat_wait_hourly` — the same definition the map uses, pinned
   by `assert_heat_wait_avg_matches_hourly.sql`: average minutes a passenger
   waits in the sun. Median 8.6 min for `high`-risk stops (p90 11.4), 4.0
-  for `medium`, 1.2 for `low`. Exposure and wait both refer to June 28
+  for `medium`, 1.2 for `low` (random-wait model, before T12/T15; with the
+  mixed model and tree shadow: 5.2 for `high` (p90 6.6), 2.3, 0.4). Exposure and wait both refer to June 28
   2026 (feed v417).
 - Tests: `not_null`/`accepted_values` on hour and bucket/risk columns, plus
   a singular uniqueness test (`assert_stg_stop_solar_exposure_unique_node_hour.sql`,

@@ -6,7 +6,7 @@
   (Lanza et al. 2025). Values in var shelter_factor_grid.
 
   exposure_score_hours = sum over the 7 hours of: 0 in building shadow,
-  factor in sun with shelter, 1 in sun without shelter. Same definition as
+  tree_transmissivity in tree shadow, factor in sun with shelter, 1 in sun without shelter. Same definition as
   stg_stop_solar_exposure, but with the factor varied. risk_level uses the
   same thresholds as mart_stop_heat_risk (macro risk_level_from_score).
 #}
@@ -20,7 +20,7 @@ with factors as (
 
 hourly as (
 
-    select osm_node_id, in_building_shadow, has_shelter
+    select osm_node_id, in_building_shadow, in_tree_shadow, has_shelter
     from {{ ref('stg_stop_solar_exposure') }}
 
 ),
@@ -33,6 +33,7 @@ scored as (
         round(sum(
             case
                 when h.in_building_shadow then 0.0
+                when h.in_tree_shadow then {{ var('tree_transmissivity', 0.03) }}
                 when h.has_shelter then f.shelter_factor
                 else 1.0
             end

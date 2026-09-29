@@ -115,9 +115,22 @@
   .grey-dot{width:10px; height:10px; flex:0 0 auto; border-radius:50%; background:#9AA0A3; display:inline-block;}
 
   .view-panel{display:flex; flex-direction:column; gap:14px;}
-  #deck-holder{height:520px; position:relative;}
-  #deck-container{position:absolute; inset:0;}
-  @media (max-width:640px){ #deck-holder{height:380px;} }
+  #deck-holder, #trees-holder{height:520px; position:relative;}
+  #deck-container, #trees-container{position:absolute; inset:0;}
+  @media (max-width:640px){ #deck-holder, #trees-holder{height:380px;} }
+  .deck-status{
+    position:absolute; left:12px; top:12px; z-index:5; background:var(--surface); border:1px solid var(--border);
+    border-radius:8px; padding:7px 11px; font-size:12.5px; color:var(--text-2); max-width:calc(100% - 24px);
+  }
+  .deck-status[hidden]{display:none;}
+  .deck-status.error{border-color:#C93A1E; color:var(--text); background:#FFF3EE;}
+  .level-key{display:flex; flex-direction:column; gap:4px; margin-top:8px;}
+  .level-key div{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--text-2);}
+  .level-key i{width:12px; height:12px; flex:0 0 auto; border-radius:3px; border:1px solid var(--marker-edge); display:inline-block;}
+  .tree-key{width:12px; height:12px; flex:0 0 auto; border-radius:50%; display:inline-block; border:1px solid var(--marker-edge);}
+  .tree-key.shades{border:2px solid #1A1A1A;}
+  .stop-key{width:12px; height:12px; flex:0 0 auto; border-radius:50%; display:inline-block; border:1.5px solid #1A1A1A; background:#FFFFFF;}
+  .stop-key.shaded{background:#1D5C63;}
 
   .legend{
     flex:0 0 200px; display:flex; flex-direction:column; gap:14px;
@@ -149,7 +162,7 @@
   #tooltip.show{opacity:1;}
   #tooltip b{display:block; font-family:var(--font-sans); font-size:12.5px; margin-bottom:2px;}
 
-  .wrap[hidden]{display:none;}
+  .wrap[hidden], .segmented[hidden], .view-panel[hidden]{display:none;}
   #load-status{max-width:640px; margin:12vh auto 0; padding:16px 18px; border:1px solid var(--border);
     border-radius:10px; font-size:15px; line-height:1.55; color:var(--text-2);}
   #load-status.error{border-color:#C93A1E; color:var(--text); background:#FFF3EE;}
@@ -168,7 +181,7 @@
   <header>
     <div class="eyebrow">Transit Heat Exposure &middot; Milano</div>
     <h1>Milan: waiting in the sun</h1>
-    <p class="lede">How many minutes do riders wait in direct sun at Milan's bus and tram stops? For each stop the map combines a sun-exposure score (0 in building shadow, 0.5 in sun with a shelter, 1 in full sun, no shelter) with the estimated wait, over the hottest documented hours of Milan's hottest summer since 1951 &mdash; June 28, 2026, 13:00&ndash;19:00 CEST (12:00&ndash;18:00 in the ARPA solar-time data). The metric is sun-exposed waiting minutes, not a heat-stress index: air temperature and humidity are not modelled.</p>
+    <p class="lede">How many minutes do riders wait in direct sun at Milan's bus and tram stops? For each stop the map combines a sun-exposure score (0 in building shadow, <span data-param="tree"></span> under a tree crown, <span data-param="shelter"></span> in sun with a shelter, 1 in full sun, no shelter) with the estimated wait, over the hottest documented hours of Milan's hottest summer since 1951 &mdash; June 28, 2026, 13:00&ndash;19:00 CEST (12:00&ndash;18:00 in the ARPA solar-time data). The metric is sun-exposed waiting minutes, not a heat-stress index: air temperature and humidity are not modelled.</p>
   </header>
 
   <div class="stats" id="stats"></div>
@@ -177,7 +190,7 @@
     <div class="controls">
       <span class="label">View</span>
       <div class="segmented" id="view-buttons"></div>
-      <span class="label" style="margin-left:auto">Hour</span>
+      <span class="label" id="hour-label" style="margin-left:auto">Hour</span>
       <div class="segmented" id="hour-buttons"></div>
     </div>
 
@@ -196,7 +209,8 @@
             <h3>Column color</h3>
             <div class="ramp-strip" id="main-ramp-strip"></div>
             <div class="ramp-labels"><span>Shadow</span><span>Sun+shelter</span><span>Full sun</span></div>
-            <p class="legend-note">Exposure score: 0 = building shadow, 0.5 = direct sun with a shelter present, 1 = full sun, no shelter. For the "Average" hour, the score is averaged across 13:00&ndash;19:00.</p>
+            <div class="level-key" data-level-key></div>
+            <p class="legend-note">Exposure score: 0 = building shadow, <span data-param="tree"></span> = shadow of a tree crown (<span data-param="tree_pct"></span> of the sun gets through), <span data-param="shelter"></span> = direct sun with a shelter present, 1 = full sun, no shelter. Tree shade sits so close to 0 that its color is almost the building-shadow one: the tooltip tells them apart. For the "Average" hour, the score is averaged across 13:00&ndash;19:00.</p>
           </div>
           <div class="legend-note"><span class="grey-dot"></span> no service in this hour &mdash; shown at ground level, no column</div>
         </div>
@@ -224,7 +238,8 @@
             <h3 id="legend-title">Sun-exposure score</h3>
             <div class="ramp-strip" id="ramp-strip"></div>
             <div class="ramp-labels" id="exposure-ramp-labels"><span>0</span><span>7</span></div>
-            <p class="legend-note" id="legend-note">Sum of the weighted exposure score (0 shadow, 0.5 sun with shelter, 1 full sun) over the 7 hours studied (13:00&ndash;19:00).</p>
+            <div class="level-key" data-level-key></div>
+            <p class="legend-note" id="legend-note"></p>
           </div>
           <div>
             <h3>Shelter</h3>
@@ -232,7 +247,7 @@
           </div>
           <div>
             <h3>Shelter-dependent class</h3>
-            <div class="shelter-key"><span class="unstable-key"></span> dashed ring = the stop's exposure class (low/medium/high) changes with the shelter factor, which is an uncalibrated assumption (0.5). Read these stops with caution.</div>
+            <div class="shelter-key"><span class="unstable-key"></span> dashed ring = the stop's exposure class (low/medium/high) changes with the shelter factor, which is an uncalibrated assumption (<span data-param="shelter"></span>). Read these stops with caution.</div>
             <label class="stations-toggle" style="margin-left:0; margin-top:6px"><input type="checkbox" id="unstable-toggle" checked> Mark them</label>
           </div>
           <div>
@@ -250,7 +265,7 @@
     <div class="view-panel" id="view-panel-wait" hidden>
       <div class="section-head">
         <h2>Estimated wait by stop</h2>
-        <p class="lede-small">Estimated wait per stop, per hour, from a mixed model: some riders arrive at random (wait = half the headway) and a share of them time their arrival to the timetable, up to 50% of riders when the headway is 11 min or more. Hover a stop for the low&ndash;high range (all lines combined vs. the least frequent line). Same day as the exposure map, Sunday June 28, 2026 (ATM GTFS feed v417), 13:00&ndash;19:00 CEST. A separate dataset from the exposure map (4,246 GTFS stops vs. 2,931 OSM stops) &mdash; the two are joined in the dbt layer (mart_stop_heat_wait_hourly), not in this map, so each is shown on its own projection here.</p>
+        <p class="lede-small">Estimated wait per stop, per hour, from a mixed model: some riders arrive at random (wait = half the headway) and a share of them time their arrival to the timetable, up to <span data-param="sync_pct"></span> of riders when the headway is <span data-param="sync_full"></span> min or more. Hover a stop for the low&ndash;high range (all lines combined vs. the least frequent line). Same day as the exposure map, Sunday June 28, 2026 (ATM GTFS feed v417), 13:00&ndash;19:00 CEST. A separate dataset from the exposure map (4,246 GTFS stops vs. 2,931 OSM stops) &mdash; the two are joined in the dbt layer (mart_stop_heat_wait_hourly), not in this map, so each is shown on its own projection here.</p>
       </div>
       <div class="map-row">
         <div class="map-holder" id="wait-map-holder" style="background-image:none;">
@@ -267,11 +282,37 @@
         </div>
       </div>
     </div>
+
+    <div class="view-panel" id="view-panel-trees" hidden>
+      <p class="lede-small">Every municipal tree in the Comune di Milano census (ds2484, 31 March 2025) that has a plausible height and crown, drawn as a dot the size of its crown and colored by height. Trees whose crown shades at least one stop in at least one hour of 13:00&ndash;19:00 have a dark outline. Stops sit on top; those with tree-crown shade in at least one hour are filled teal. Zoom in to hover a tree. Only municipal trees are in the census: private trees are missing, so tree shade is underestimated.</p>
+      <div class="stats" id="trees-stats"></div>
+      <div class="map-row">
+        <div class="map-holder" id="trees-holder" style="background-image:none;">
+          <div id="trees-container"></div>
+          <div class="deck-status" id="trees-status" role="status" aria-live="polite" hidden></div>
+        </div>
+        <div class="legend">
+          <div>
+            <h3>Tree height</h3>
+            <div class="ramp-strip" id="tree-ramp-strip"></div>
+            <div class="ramp-labels"><span>1 m</span><span id="tree-cap-label"></span></div>
+            <p class="legend-note">Dot radius = half the crown diameter, in meters on the ground.</p>
+          </div>
+          <div>
+            <h3>Highlights</h3>
+            <div class="shelter-key"><span class="tree-key shades" style="background:#31A354"></span> tree whose crown shades a stop</div>
+            <div class="shelter-key" style="margin-top:6px"><span class="stop-key shaded"></span> stop with tree-crown shade</div>
+            <div class="shelter-key" style="margin-top:6px"><span class="stop-key"></span> stop without</div>
+          </div>
+          <div class="legend-note" id="trees-partial-note" hidden></div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <p class="method-note"><b>Method.</b> Waits use a mixed model: random arrivals plus a share of riders synchronised to the timetable (a parameter, up to 50% for headways of 11 min or more), so each stop has a central estimate and a low&ndash;high range. The shelter factor (0.5) is an assumption, not calibrated: changing it between 0 and 1.2 moves a large share of stops to another exposure class, which the dashed rings flag. Details and code: <a href="https://github.com/N-iv-a/transit-heat-exposure-dbt">github.com/N-iv-a/transit-heat-exposure-dbt</a>.</p>
+  <p class="method-note"><b>Method.</b> Waits use a mixed model: random arrivals plus a share of riders synchronised to the timetable (a parameter, up to <span data-param="sync_pct"></span> for headways of <span data-param="sync_full"></span> min or more), so each stop has a central estimate and a low&ndash;high range. The shelter factor (<span data-param="shelter"></span>) is an assumption, not calibrated: changing it between <span data-param="shelter_min"></span> and <span data-param="shelter_max"></span> moves a large share of stops to another exposure class, which the dashed rings flag. Trees come from the Comune di Milano census (ds2484, 31 March 2025) and include municipal trees only: private trees, and trees in parks or courtyards outside the census, are not counted, so tree shade is underestimated. A crown is modelled as a cylinder (radius = half the crown diameter) and lets <span data-param="tree_pct"></span> of the sun through (<span data-param="tree"></span> in the score; Konarska et al. 2014, 1.3&ndash;5.3%). Details and code: <a href="https://github.com/N-iv-a/transit-heat-exposure-dbt">github.com/N-iv-a/transit-heat-exposure-dbt</a>.</p>
 
-  <footer>Data: ATM Milano GTFS &middot; Copernicus Urban Atlas Building Height 2012 &middot; OpenStreetMap &middot; ARPA Lombardia. Built with AI assistance (Claude); modeling choices are the project owner's.</footer>
+  <footer>Data: ATM Milano GTFS &middot; Comune di Milano tree census (ds2484) &middot; Copernicus Urban Atlas Building Height 2012 &middot; OpenStreetMap &middot; ARPA Lombardia. Built with AI assistance (Claude); modeling choices are the project owner's.</footer>
 </div>
 
 <div id="tooltip"></div>
@@ -283,6 +324,7 @@ __DECKGL_TAG__
 // JSON files are fetched (relative paths).
 const INLINE = __INLINE_DATA__;
 const DATA_FILES = {exposure:'data/exposure.json', wait:'data/wait_time.json', main:'data/main.json'};
+const TREES_URL = 'data/trees.json'; // fetched on first opening of the Trees view (site build)
 const BUILDINGS_DECK_URL = "__BUILDINGS_DECK_URL__";
 
 async function loadData(){
@@ -322,6 +364,23 @@ const DATA = payload.exposure;
 const ROADS = [];
 const WAIT_DATA = payload.wait;
 const MAIN_DATA = payload.main;
+
+// Model parameters come from dbt_project.yml (prepare_main_data.py -> main.json
+// `params`); the page text never hard-codes them.
+const P = MAIN_DATA.params;
+const fmtNum = v => String(v);
+const pct = v => Math.round(v*100) + '%';
+const PARAM_TEXT = {
+  shelter: fmtNum(P.shelter_exposure_factor),
+  tree: fmtNum(P.tree_transmissivity),
+  tree_pct: pct(P.tree_transmissivity),
+  sync_pct: pct(P.sync_share_max),
+  sync_full: fmtNum(P.sync_headway_full),
+  shelter_min: fmtNum(P.shelter_factor_min),
+  shelter_max: fmtNum(P.shelter_factor_max),
+};
+document.querySelectorAll('[data-param]').forEach(el=>{ el.textContent = PARAM_TEXT[el.dataset.param]; });
+const isTreeShade = t => t > 0 && Math.abs(t - P.tree_transmissivity) < 1e-6;
 
 const WEATHER_STATIONS = [
   {id:2001, name:'Milano Lambrate',      lo:9.2575154,  la:45.49677982, pctOver30:23.9},
@@ -618,7 +677,8 @@ svg.addEventListener('mousemove', (e)=>{
     const hourLabel = mode === 'avg' ? 'Average, 13:00–19:00' : `${mode}:00`;
     tooltip.innerHTML = `<b>${escapeHtml(rec.n) || 'Unnamed stop'}</b>` +
       `Sun-exposure score: ${rec.e.toFixed(2)}/7 total<br>` +
-      `At ${hourLabel}: ${weightFor(rec).toFixed(2)}` +
+      `At ${hourLabel}: ${weightFor(rec).toFixed(2)}` + (isTreeShade(weightFor(rec)) ? ' (tree shade)' : '') +
+      (rec.ts > 0 ? `<br>Tree-crown shade in ${rec.ts} of 7 hours` : '') +
       (rec.sh ? '<br>Has shelter' : '') +
       (rec.st ? '' : '<br>Class depends on the shelter factor');
   } else if (t.dataset && t.dataset.station){
@@ -742,11 +802,11 @@ function updateLegend(){
   const labels = document.getElementById('exposure-ramp-labels');
   if (mode === 'avg'){
     title.textContent = 'Sun-exposure score (0\u20137)';
-    note.textContent = 'Sum of the weighted exposure score (0 shadow, 0.5 sun with shelter, 1 full sun) over the 7 hours studied (13:00\u201319:00).';
+    note.textContent = `Sum of the weighted exposure score (0 building shadow, ${PARAM_TEXT.tree} tree shade, ${PARAM_TEXT.shelter} sun with shelter, 1 full sun) over the 7 hours studied (13:00\u201319:00).`;
     labels.innerHTML = '<span>0</span><span>7</span>';
   } else {
     title.textContent = `Sun-exposure score at ${mode}:00`;
-    note.textContent = 'Weighted exposure score at this hour: 0 = building shadow, 0.5 = direct sun with a shelter present, 1 = full sun, no shelter.';
+    note.textContent = `Weighted exposure score at this hour: 0 = building shadow, ${PARAM_TEXT.tree} = tree shade, ${PARAM_TEXT.shelter} = direct sun with a shelter present, 1 = full sun, no shelter.`;
     labels.innerHTML = '<span>0 (shadow)</span><span>1 (full sun)</span>';
   }
 }
@@ -875,6 +935,7 @@ function exposureColorRGBA(t){
   ];
 }
 function wordForScore(t){
+  if (isTreeShade(t)) return 'tree shade';
   if (t < 0.25) return 'shadow';
   if (t < 0.75) return 'sun with shelter';
   return 'full sun';
@@ -906,6 +967,7 @@ function mainTooltip({object}){
   return {
     html: `<b>${escapeHtml(object.n) || 'Unnamed stop'}</b>${hourLabel}<br>` +
       `Sun exposure: ${wordForScore(score)} (${score.toFixed(2)})<br>` +
+      (object.ts > 0 ? `Tree-crown shade in ${object.ts} of 7 hours<br>` : '') +
       (wait !== null
         ? `Estimated wait ${wait.toFixed(1)} min${rangeLabel(seriesAt(object.wl, sharedHour), seriesAt(object.wh, sharedHour), '')}`
         : 'Wait: no service') + '<br>' +
@@ -997,15 +1059,247 @@ function renderMainRampStrip(){
   }
 }
 
+// Discrete exposure levels (legend key next to the ramp).
+function renderLevelKeys(){
+  const levels = [
+    [0, 'Building shadow', '0'],
+    [P.tree_transmissivity, 'Tree shade', PARAM_TEXT.tree],
+    [P.shelter_exposure_factor, 'Sun with shelter', PARAM_TEXT.shelter],
+    [1, 'Full sun', '1'],
+  ];
+  document.querySelectorAll('[data-level-key]').forEach(el=>{
+    el.innerHTML = levels.map(([t,label,val])=>{
+      const [r,g,b] = exposureColorRGBA(t);
+      return `<div><i style="background:${rgbToHex(r,g,b)}"></i>${label} (${val})</div>`;
+    }).join('');
+  });
+}
+renderLevelKeys();
+
+// ==== Trees view: deck.gl scatterplot of the municipal tree census ====
+// The tree file (~250k trees, columnar and quantized, see prepare_tree_data.py)
+// is loaded the first time the view opens, not at page load.
+const TREE_HEIGHT_CAP = 30; // m, color scale saturates here
+const TREE_RAMP = ['#E5F5B0','#A6DB8A','#5BB76A','#238A4A','#0B5A32','#053A20'];
+const TREE_PICK_ZOOM = 12.5; // below this zoom the 250k dots are not pickable (speed)
+const TREE_LUT = Array.from({length: TREE_HEIGHT_CAP + 1}, (_, h)=>{
+  const t = Math.max(0, Math.min(1, (h - 1) / (TREE_HEIGHT_CAP - 1)));
+  const scaled = t * (TREE_RAMP.length - 1), i = Math.min(TREE_RAMP.length - 2, Math.floor(scaled)), f = scaled - i;
+  const a = hexToRgb(TREE_RAMP[i]), b = hexToRgb(TREE_RAMP[i+1]);
+  return [lerp(a[0],b[0],f), lerp(a[1],b[1],f), lerp(a[2],b[2],f)];
+});
+const TOOLTIP_STYLE = {
+  backgroundColor: '#1A1A1A', color: '#FFFFFF',
+  fontFamily: 'ui-monospace,SFMono-Regular,"SF Mono",Consolas,monospace',
+  fontSize: '12px', padding: '8px 10px', borderRadius: '7px', lineHeight: '1.5', maxWidth: '240px',
+};
+const SITE_URL = document.querySelector('meta[property="og:url"]').content;
+
+const treesEl = {
+  holder: document.getElementById('trees-holder'),
+  status: document.getElementById('trees-status'),
+  partial: document.getElementById('trees-partial-note'),
+};
+let trees = null;        // decoded, see decodeTrees
+let treesState = 'idle'; // idle | loading | ready | error
+let treesDeck = null;
+let treesZoom = 0;
+let treesLoadMs = null;
+
+function setTreesStatus(state, text){
+  treesState = state;
+  treesEl.status.dataset.state = state;
+  treesEl.status.className = 'deck-status' + (state === 'error' ? ' error' : '');
+  treesEl.status.hidden = !text;
+  treesEl.status.textContent = text || '';
+}
+
+function decodeTrees(t){
+  const n = t.n;
+  const pos = new Float32Array(2*n), rad = new Float32Array(n), col = new Uint8Array(4*n);
+  let x = 0, y = 0;
+  for (let i=0; i<n; i++){
+    x += t.x[i]; y += t.y[i];
+    pos[2*i] = t.lon0 + x * t.scale;
+    pos[2*i+1] = t.lat0 + y * t.scale;
+    rad[i] = t.c[i] / 4; // c is the crown diameter in 0.5 m units
+    const c = TREE_LUT[Math.min(TREE_HEIGHT_CAP, Math.max(0, t.h[i]))];
+    col[4*i] = c[0]; col[4*i+1] = c[1]; col[4*i+2] = c[2]; col[4*i+3] = 215;
+  }
+  const s = Uint32Array.from(t.s), m = s.length;
+  const posS = new Float32Array(2*m), radS = new Float32Array(m), colS = new Uint8Array(4*m);
+  s.forEach((k, j)=>{
+    posS[2*j] = pos[2*k]; posS[2*j+1] = pos[2*k+1]; radS[j] = rad[k];
+    colS.set(col.subarray(4*k, 4*k+4), 4*j); colS[4*j+3] = 255;
+  });
+  return {raw: t, n, pos, rad, col, s, posS, radS, colS};
+}
+
+function treeTooltipHtml(i, shades){
+  const t = trees.raw;
+  const [g, sp] = t.species[t.sp[i]];
+  const name = `${t.genera[g]} ${sp}`.trim() || 'Unknown species';
+  return `<b>${escapeHtml(name)}</b><br>Height ${t.h[i]} m<br>Crown ${(t.c[i]/2).toFixed(1)} m wide` +
+    (shades ? '<br>shades a bus stop' : '');
+}
+
+function treesTooltip(info){
+  const {layer, index, object} = info;
+  if (!layer || index < 0) return null;
+  let html = null;
+  if (layer.id === 'trees-all' && trees) html = treeTooltipHtml(index, trees.s.includes(index));
+  else if (layer.id === 'trees-shading' && trees) html = treeTooltipHtml(trees.s[index], true);
+  else if (layer.id === 'trees-stops' && object){
+    html = `<b>${escapeHtml(object.n) || 'Unnamed stop'}</b><br>` +
+      `Tree-crown shade: ${object.ts} of 7 hours (13:00\u201319:00)<br>Trees within 20 m: ${object.nt}`;
+  }
+  return html ? {html, style: TOOLTIP_STYLE} : null;
+}
+
+function buildTreesLayers(){
+  const [lonMin, latMin, lonMax, latMax] = MAIN_BOUNDS;
+  const noDepth = {depthTest: false};
+  const stops = [...MAIN_DATA.stops.filter(d => !d.ts), ...MAIN_DATA.stops.filter(d => d.ts > 0)];
+  const layers = [
+    new deck.BitmapLayer({
+      id: 'buildings-backdrop', image: BUILDINGS_DECK_URL,
+      bounds: [lonMin, latMin, lonMax, latMax], opacity: 0.85,
+    }),
+  ];
+  if (trees){
+    layers.push(
+      new deck.ScatterplotLayer({
+        id: 'trees-all',
+        data: {length: trees.n, attributes: {
+          getPosition: {value: trees.pos, size: 2},
+          getRadius: {value: trees.rad, size: 1},
+          getFillColor: {value: trees.col, size: 4, normalized: true},
+        }},
+        radiusUnits: 'meters', radiusMinPixels: 0.8,
+        pickable: treesZoom >= TREE_PICK_ZOOM, autoHighlight: true, highlightColor: [26, 26, 26, 200],
+        parameters: noDepth,
+      }),
+      new deck.ScatterplotLayer({
+        id: 'trees-shading',
+        data: {length: trees.s.length, attributes: {
+          getPosition: {value: trees.posS, size: 2},
+          getRadius: {value: trees.radS, size: 1},
+          getFillColor: {value: trees.colS, size: 4, normalized: true},
+        }},
+        radiusUnits: 'meters', radiusMinPixels: 3.5,
+        stroked: true, lineWidthUnits: 'pixels', lineWidthMinPixels: 1.5, getLineColor: [26, 26, 26, 255],
+        pickable: true, autoHighlight: true, highlightColor: [255, 255, 255, 200],
+        parameters: noDepth,
+      }),
+    );
+  }
+  layers.push(new deck.ScatterplotLayer({
+    id: 'trees-stops',
+    data: stops,
+    radiusUnits: 'meters', radiusMinPixels: 3.5,
+    getPosition: d => [d.lo, d.la],
+    getRadius: d => d.ts > 0 ? 16 : 10,
+    getFillColor: d => d.ts > 0 ? [29, 92, 99, 255] : [255, 255, 255, 235],
+    stroked: true, lineWidthUnits: 'pixels', lineWidthMinPixels: 1.2, getLineColor: [26, 26, 26, 255],
+    pickable: true, parameters: noDepth,
+  }));
+  return layers;
+}
+
+function ensureTreesDeck(){
+  if (treesDeck) return;
+  const rect = treesEl.holder.getBoundingClientRect();
+  const [lonMin, latMin, lonMax, latMax] = MAIN_BOUNDS;
+  treesZoom = fitMainZoom(rect.width, rect.height);
+  treesDeck = new deck.DeckGL({
+    container: document.getElementById('trees-container'),
+    initialViewState: {longitude: (lonMin+lonMax)/2, latitude: (latMin+latMax)/2, zoom: treesZoom, pitch: 0, bearing: 0},
+    controller: true,
+    layers: [],
+    getTooltip: treesTooltip,
+    onViewStateChange: ({viewState})=>{
+      const was = treesZoom >= TREE_PICK_ZOOM, now = viewState.zoom >= TREE_PICK_ZOOM;
+      treesZoom = viewState.zoom;
+      if (was !== now && trees) treesDeck.setProps({layers: buildTreesLayers()});
+    },
+  });
+  window.__treesDeck = treesDeck; // test hook
+}
+
+async function fetchTrees(){
+  if (INLINE && INLINE.trees) return INLINE.trees;
+  const r = await fetch(TREES_URL);
+  if (!r.ok) throw new Error(TREES_URL + ' -> HTTP ' + r.status);
+  return r.json();
+}
+
+function openTreesView(){
+  ensureTreesDeck();
+  if (treesState === 'idle' || treesState === 'error'){
+    setTreesStatus('loading', 'Loading trees\u2026');
+    treesDeck.setProps({layers: buildTreesLayers()}); // backdrop + stops while the trees load
+    const t0 = performance.now();
+    // let the "loading" state paint before the heavy decode
+    fetchTrees().then(raw => new Promise(res => requestAnimationFrame(()=>setTimeout(()=>res(raw), 0))))
+      .then(raw => {
+        trees = decodeTrees(raw);
+        treesDeck.setProps({layers: buildTreesLayers()});
+        treesLoadMs = Math.round(performance.now() - t0);
+        window.__treesLoadMs = treesLoadMs;
+        setTreesStatus('ready', '');
+        if (raw.partial){
+          treesEl.partial.hidden = false;
+          treesEl.partial.innerHTML = `This single-file version only includes the ${raw.n.toLocaleString('en-US')} trees whose crown shades a stop, out of ${raw.total.toLocaleString('en-US')}. The full tree map is on the site: <a href="${SITE_URL}">${SITE_URL.replace('https://','')}</a>.`;
+        }
+      })
+      .catch(err => { console.error(err); setTreesStatus('error', 'Could not load the tree data: ' + (err && err.message ? err.message : err)); });
+  }
+}
+
+// KPIs, from main.json only: available before the trees load.
+function renderTreesStats(){
+  const el = document.getElementById('trees-stats');
+  const stops = MAIN_DATA.stops;
+  const high = stops.filter(d => d.s.reduce((a,b)=>a+b,0) >= 5);
+  const noTrees = high.filter(d => d.nt === 0).length;
+  const withShade = stops.filter(d => d.ts > 0).length;
+  const items = [
+    {n: MAIN_DATA.trees.n.toLocaleString('en-US'), l:'Municipal trees mapped (plausible height and crown)'},
+    {n: MAIN_DATA.trees.shading.toLocaleString('en-US'), l:'Trees whose crown shades a stop'},
+    {n: withShade.toLocaleString('en-US') + ' (' + (100*withShade/stops.length).toFixed(0) + '%)', l:'Stops with tree-crown shade in at least one hour'},
+    {n: noTrees.toLocaleString('en-US') + ' vs ' + (high.length - noTrees).toLocaleString('en-US'), l:'Highly exposed stops (score sum \u2265 5 of 7) with no tree within 20 m vs with at least one'},
+  ];
+  el.innerHTML = items.map(s => `<div class="stat"><span class="n">${s.n}</span><span class="l">${s.l}</span></div>`).join('');
+}
+function renderTreeRampStrip(){
+  const strip = document.getElementById('tree-ramp-strip');
+  strip.innerHTML = '';
+  for (let h=1; h<=TREE_HEIGHT_CAP; h++){
+    const s = document.createElement('span');
+    s.style.background = rgbToHex(...TREE_LUT[h]);
+    strip.appendChild(s);
+  }
+  document.getElementById('tree-cap-label').textContent = TREE_HEIGHT_CAP + '+ m';
+}
+renderTreesStats();
+renderTreeRampStrip();
+
 // ==== Shared view + hour controls ====
 const VIEW_PANELS = {
   main: document.getElementById('view-panel-main'),
   exposure: document.getElementById('view-panel-exposure'),
   wait: document.getElementById('view-panel-wait'),
+  trees: document.getElementById('view-panel-trees'),
 };
 let currentView = 'main';
 function renderActiveView(){
-  if (currentView === 'main'){
+  // the Trees view does not depend on the hour
+  const hourless = currentView === 'trees';
+  document.getElementById('hour-label').hidden = hourless;
+  document.getElementById('hour-buttons').hidden = hourless;
+  if (currentView === 'trees'){
+    openTreesView();
+  } else if (currentView === 'main'){
     updateMainLayers();
   } else if (currentView === 'exposure'){
     mode = sharedHour;
@@ -1024,6 +1318,7 @@ const VIEWS = [
   {v:'main', label:'Sun × wait'},
   {v:'exposure', label:'Exposure'},
   {v:'wait', label:'Wait'},
+  {v:'trees', label:'Trees'},
 ];
 const viewButtons = document.getElementById('view-buttons');
 VIEWS.forEach(vw=>{
