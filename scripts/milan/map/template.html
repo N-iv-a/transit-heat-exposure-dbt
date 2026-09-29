@@ -1,5 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Milan Heat Exposure</title>
+<meta name="description" content="Bus and tram stops in Milan scored for sun exposure and waiting time during the hottest hours of June 28, 2026.">
+<meta property="og:title" content="Milan Heat Exposure">
+<meta property="og:description" content="Bus and tram stops in Milan scored for sun exposure and waiting time during the hottest hours of June 28, 2026.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://n-iv-a.github.io/transit-heat-exposure-dbt/">
+<meta property="og:image" content="https://n-iv-a.github.io/transit-heat-exposure-dbt/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Milan Heat Exposure">
+<meta name="twitter:description" content="Bus and tram stops in Milan scored for sun exposure and waiting time during the hottest hours of June 28, 2026.">
+<meta name="twitter:image" content="https://n-iv-a.github.io/transit-heat-exposure-dbt/og.png">
 <style>
   :root{
     --bg:#FFFFFF;
@@ -20,7 +36,7 @@
     --ramp-5:#7A1B0E;
     --marker-edge: rgba(26,26,26,0.35);
     --shadow-soft: none;
-    --bg-buildings: url("data:image/png;base64,__BUILDINGS_B64__");
+    --bg-buildings: url("__BUILDINGS_URL__");
     --font-sans: system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
     --font-mono: ui-monospace,SFMono-Regular,"SF Mono",Consolas,monospace;
   }
@@ -129,6 +145,11 @@
   #tooltip.show{opacity:1;}
   #tooltip b{display:block; font-family:var(--font-sans); font-size:12.5px; margin-bottom:2px;}
 
+  .wrap[hidden]{display:none;}
+  #load-status{max-width:640px; margin:12vh auto 0; padding:16px 18px; border:1px solid var(--border);
+    border-radius:10px; font-size:15px; line-height:1.55; color:var(--text-2);}
+  #load-status.error{border-color:#C93A1E; color:var(--text); background:#FFF3EE;}
+  #load-status code{font-family:var(--font-mono); font-size:13px;}
   footer{font-size:12px; color:var(--text-3); text-align:center; padding-top:6px;}
 
   @media (max-width:640px){
@@ -136,12 +157,14 @@
     .legend{flex:1 1 auto;}
   }
 </style>
-
-<div class="wrap">
+</head>
+<body>
+<div id="load-status" role="status" aria-live="polite">Loading map data&hellip;</div>
+<div class="wrap" hidden>
   <header>
     <div class="eyebrow">Transit Heat Exposure &middot; Milano</div>
     <h1>Milan Heat Exposure</h1>
-    <p class="lede">2,931 bus stops, scored for sun exposure during the hottest documented hours of Milan's hottest summer since 1951 &mdash; June 28, 2026, 12:00&ndash;18:00. Exposure score: 0 in building shadow, 0.5 in direct sun with a shelter present (a roof cuts the sun but doesn't cool like real shade), 1 in full sun with no shelter. The main view below crosses this score with how long riders actually wait.</p>
+    <p class="lede">2,931 bus stops, scored for sun exposure during the hottest documented hours of Milan's hottest summer since 1951 &mdash; June 28, 2026, 13:00&ndash;19:00 CEST (local time; 12:00&ndash;18:00 in the ARPA solar-time data). Exposure score: 0 in building shadow, 0.5 in direct sun with a shelter present (a roof cuts the sun but doesn't cool like real shade), 1 in full sun with no shelter. The main view below crosses this score with how long riders actually wait.</p>
   </header>
 
   <div class="stats" id="stats"></div>
@@ -169,7 +192,7 @@
             <h3>Column color</h3>
             <div class="ramp-strip" id="main-ramp-strip"></div>
             <div class="ramp-labels"><span>Shadow</span><span>Sun+shelter</span><span>Full sun</span></div>
-            <p class="legend-note">Exposure score: 0 = building shadow, 0.5 = direct sun with a shelter present, 1 = full sun, no shelter. For the "Average" hour, the score is averaged across 12:00&ndash;18:00.</p>
+            <p class="legend-note">Exposure score: 0 = building shadow, 0.5 = direct sun with a shelter present, 1 = full sun, no shelter. For the "Average" hour, the score is averaged across 13:00&ndash;19:00.</p>
           </div>
           <div class="legend-note"><span class="grey-dot"></span> no service in this hour &mdash; shown at ground level, no column</div>
         </div>
@@ -197,7 +220,7 @@
             <h3 id="legend-title">Exposure score</h3>
             <div class="ramp-strip" id="ramp-strip"></div>
             <div class="ramp-labels" id="exposure-ramp-labels"><span>0</span><span>7</span></div>
-            <p class="legend-note" id="legend-note">Sum of the weighted exposure score (0 shadow, 0.5 sun with shelter, 1 full sun) over the 7 hours studied (12:00&ndash;18:00).</p>
+            <p class="legend-note" id="legend-note">Sum of the weighted exposure score (0 shadow, 0.5 sun with shelter, 1 full sun) over the 7 hours studied (13:00&ndash;19:00).</p>
           </div>
           <div>
             <h3>Shelter</h3>
@@ -218,7 +241,7 @@
     <div class="view-panel" id="view-panel-wait" hidden>
       <div class="section-head">
         <h2>Wait time by stop</h2>
-        <p class="lede-small">Median expected wait per stop, per hour &mdash; headway between scheduled departures on the SAME line, halved, then the median across every line serving that stop (not a combined-schedule shortcut). Sunday Sept 13, 2026: a day-type stand-in for June 28 (the ATM feed doesn't reach back that far). A separate dataset from the exposure map (4,192 GTFS stops vs. 2,931 OSM stops) &mdash; the two are joined in the dbt layer (mart_stop_heat_wait_hourly), not in this map, so each is shown on its own projection here.</p>
+        <p class="lede-small">Median expected wait per stop, per hour &mdash; headway between scheduled departures on the SAME line, halved, then the median across every line serving that stop (not a combined-schedule shortcut). Same day as the exposure map, Sunday June 28, 2026 (ATM GTFS feed v417), 13:00&ndash;19:00 CEST. A separate dataset from the exposure map (4,246 GTFS stops vs. 2,931 OSM stops) &mdash; the two are joined in the dbt layer (mart_stop_heat_wait_hourly), not in this map, so each is shown on its own projection here.</p>
       </div>
       <div class="map-row">
         <div class="map-holder" id="wait-map-holder" style="background-image:none;">
@@ -231,7 +254,7 @@
             <div class="ramp-labels"><span>0</span><span>25+</span></div>
             <p class="legend-note" id="wait-legend-note">Capped at 25 min for color purposes &mdash; a handful of low-frequency stops wait much longer, but letting them set the scale would wash out the difference between everyone else.</p>
           </div>
-          <div class="legend-note">4,192 GTFS stops (metro, tram, bus) &mdash; a larger, differently-sourced set than the 2,931 OSM stops in the exposure map.</div>
+          <div class="legend-note">4,246 GTFS stops (metro, tram, bus) &mdash; a larger, differently-sourced set than the 2,931 OSM stops in the exposure map.</div>
         </div>
       </div>
     </div>
@@ -242,13 +265,52 @@
 
 <div id="tooltip"></div>
 
-<script>__DECKGL_JS__</script>
+__DECKGL_TAG__
 <script>
-const DATA = __DATA_JSON__;
-const ROADS = __ROADS_JSON__;
-const WAIT_DATA = __WAIT_JSON__;
-const MAIN_DATA = __MAIN_DATA_JSON__;
-const BUILDINGS_DECK_B64 = "__BUILDINGS_DECK_B64__";
+// Single template, two builds. Single-file build: the INLINE value below is the
+// data object and nothing is fetched. Site build: it is null and the
+// JSON files are fetched (relative paths).
+const INLINE = __INLINE_DATA__;
+const DATA_FILES = {exposure:'data/exposure.json', wait:'data/wait_time.json', main:'data/main.json'};
+const BUILDINGS_DECK_URL = "__BUILDINGS_DECK_URL__";
+
+async function loadData(){
+  if (INLINE) return INLINE;
+  const names = Object.keys(DATA_FILES);
+  const parts = await Promise.all(names.map(async k => {
+    const r = await fetch(DATA_FILES[k]);
+    if (!r.ok) throw new Error(DATA_FILES[k] + ' -> HTTP ' + r.status);
+    return r.json();
+  }));
+  return Object.fromEntries(names.map((k,i)=>[k, parts[i]]));
+}
+
+function showLoadError(err){
+  const el = document.getElementById('load-status');
+  el.className = 'error'; el.setAttribute('role','alert');
+  const fromFile = location.protocol === 'file:';
+  el.innerHTML = '<b>Could not load the map data.</b><br>' +
+    (fromFile
+      ? 'Browsers block loading data files when a page is opened straight from disk (<code>file://</code>). '
+      : 'A data file could not be fetched. ') +
+    'Use the single-file version (<code>milan_heat_map.html</code>, which needs no server), ' +
+    'or serve this folder over HTTP (for example <code>python3 -m http.server</code>).' +
+    '<br><small id="load-detail"></small>';
+  el.querySelector('#load-detail').textContent = err && err.message ? err.message : String(err);
+}
+
+loadData().then(payload => {
+  if (typeof deck === 'undefined') throw new Error('vendor/deck.gl-9.4.0.min.js not loaded');
+  document.getElementById('load-status').hidden = true;
+  document.querySelector('.wrap').hidden = false;
+  startApp(payload);
+}).catch(err => { console.error(err); showLoadError(err); });
+
+function startApp(payload){
+const DATA = payload.exposure;
+const ROADS = [];
+const WAIT_DATA = payload.wait;
+const MAIN_DATA = payload.main;
 
 const WEATHER_STATIONS = [
   {id:2001, name:'Milano Lambrate',      lo:9.2575154,  la:45.49677982, pctOver30:23.9},
@@ -319,16 +381,16 @@ svg.setAttribute('viewBox', `0 0 ${VB_W} ${VB_H}`);
 const mapHolder = document.getElementById('map-holder');
 const heatCanvas = document.getElementById('heatmap');
 
-let mode = 'avg'; // 'avg' | 12..18
+let mode = 'avg'; // 'avg' | 13..19
 let display = 'points';  // 'points' | 'heatmap'
 let showStations = true;
 
 function weightFor(rec){
-  // rec.e is the weighted exposure score summed over 12..18 (0-7); rec.h
+  // rec.e is the weighted exposure score summed over 13..19 (0-7); rec.h
   // holds the per-hour weighted score already (0 shadow, 0.5 sun+shelter,
   // 1 full sun) -- both continuous, not the old exposed/not-exposed flag.
   if (mode === 'avg') return rec.e/7;
-  return rec.h[mode-12];
+  return rec.h[mode-13];
 }
 function colorFor(rec){
   return rampColor(weightFor(rec));
@@ -523,7 +585,7 @@ svg.addEventListener('mousemove', (e)=>{
   if ((t.tagName === 'circle' || t.tagName === 'rect') && t.dataset.id){
     const rec = byId[t.dataset.id];
     if (!rec) return;
-    const hourLabel = mode === 'avg' ? 'Average, 12:00–18:00' : `${mode}:00`;
+    const hourLabel = mode === 'avg' ? 'Average, 13:00–19:00' : `${mode}:00`;
     tooltip.innerHTML = `<b>${escapeHtml(rec.n) || 'Unnamed stop'}</b>` +
       `Exposure score: ${rec.e.toFixed(2)}/7 total<br>` +
       `At ${hourLabel}: ${weightFor(rec).toFixed(2)}` +
@@ -549,13 +611,13 @@ svg.addEventListener('mouseleave', ()=> tooltip.classList.remove('show'));
 // radius: high sun (near-zenith) sits near the center, low sun near the rim,
 // same convention as a standard architect's sun-path diagram.
 const SUN_POSITIONS = {
-  12: {azimuth:134.4, elevation:61.7},
   13: {azimuth:164.1, elevation:67.2},
   14: {azimuth:199.8, elevation:66.8},
   15: {azimuth:228.3, elevation:60.8},
   16: {azimuth:247.5, elevation:51.9},
   17: {azimuth:261.2, elevation:41.8},
   18: {azimuth:272.4, elevation:31.3},
+  19: {azimuth:282.4, elevation:20.9},
 };
 const SUN_CX = 70, SUN_CY = 70, SUN_R = 54;
 function sunXY(azimuth, elevation){
@@ -644,7 +706,7 @@ function updateLegend(){
   const labels = document.getElementById('exposure-ramp-labels');
   if (mode === 'avg'){
     title.textContent = 'Exposure score (0\u20137)';
-    note.textContent = 'Sum of the weighted exposure score (0 shadow, 0.5 sun with shelter, 1 full sun) over the 7 hours studied (12:00\u201318:00).';
+    note.textContent = 'Sum of the weighted exposure score (0 shadow, 0.5 sun with shelter, 1 full sun) over the 7 hours studied (13:00\u201319:00).';
     labels.innerHTML = '<span>0</span><span>7</span>';
   } else {
     title.textContent = `Exposure score at ${mode}:00`;
@@ -679,14 +741,14 @@ function waitProject(lon, lat){
 const waitSvg = document.getElementById('waitmap');
 waitSvg.setAttribute('viewBox', `0 0 ${WAIT_VB_W} ${WAIT_VB_H}`);
 
-let waitMode = 'avg'; // 'avg' | 12..18
+let waitMode = 'avg'; // 'avg' | 13..19
 function waitValueFor(rec){
   if (waitMode === 'avg'){
     const vals = rec.w.filter(v=>v!==null);
     if (!vals.length) return null;
     return vals.reduce((a,b)=>a+b,0)/vals.length;
   }
-  return rec.w[waitMode-12];
+  return rec.w[waitMode-13];
 }
 function waitColorFor(rec){
   const v = waitValueFor(rec);
@@ -722,8 +784,8 @@ waitSvg.addEventListener('mousemove', (e)=>{
   const rec = waitById[t.dataset.waitId];
   if (!rec) return;
   const v = waitValueFor(rec);
-  const hourLabel = waitMode === 'avg' ? 'Average, 12:00–18:00' : `${waitMode}:00`;
-  const nl = waitMode === 'avg' ? Math.round(rec.nl.reduce((a,b)=>a+b,0)/Math.max(1,rec.nl.filter(x=>x>0).length)) : rec.nl[waitMode-12];
+  const hourLabel = waitMode === 'avg' ? 'Average, 13:00–19:00' : `${waitMode}:00`;
+  const nl = waitMode === 'avg' ? Math.round(rec.nl.reduce((a,b)=>a+b,0)/Math.max(1,rec.nl.filter(x=>x>0).length)) : rec.nl[waitMode-13];
   tooltip.innerHTML = `<b>${escapeHtml(rec.n) || 'Unnamed stop'}</b>${hourLabel}<br>Median wait: ${v!==null?v.toFixed(1)+' min':'no service'}${nl?'<br>'+nl+' line(s) observed':''}`;
   tooltip.style.left = (e.clientX + 14) + 'px';
   tooltip.style.top = (e.clientY + 14) + 'px';
@@ -775,7 +837,7 @@ function wordForScore(t){
 }
 function scoreForHour(rec, hour){
   if (hour === 'avg') return rec.s.reduce((a,b)=>a+b,0)/rec.s.length;
-  return rec.s[hour-12];
+  return rec.s[hour-13];
 }
 function waitForHourMain(rec, hour){
   if (hour === 'avg'){
@@ -783,7 +845,7 @@ function waitForHourMain(rec, hour){
     if (!vals.length) return null;
     return vals.reduce((a,b)=>a+b,0)/vals.length;
   }
-  return rec.w[hour-12];
+  return rec.w[hour-13];
 }
 
 const MAIN_ELEVATION_SCALE = 20; // meters of column height per minute of wait
@@ -801,7 +863,7 @@ function fitMainZoom(containerWidth, containerHeight){
 
 function mainTooltip({object}){
   if (!object) return null;
-  const hourLabel = sharedHour === 'avg' ? 'Average, 12:00–18:00' : `${sharedHour}:00`;
+  const hourLabel = sharedHour === 'avg' ? 'Average, 13:00–19:00' : `${sharedHour}:00`;
   const score = scoreForHour(object, sharedHour);
   const wait = waitForHourMain(object, sharedHour);
   return {
@@ -823,7 +885,7 @@ function buildMainLayers(hour){
   return [
     new deck.BitmapLayer({
       id: 'buildings-backdrop',
-      image: 'data:image/png;base64,' + BUILDINGS_DECK_B64,
+      image: BUILDINGS_DECK_URL,
       bounds: [lonMin, latMin, lonMax, latMax],
       opacity: 0.85,
     }),
@@ -912,7 +974,7 @@ function renderActiveView(){
   } else if (currentView === 'wait'){
     waitMode = sharedHour;
     document.getElementById('wait-legend-title').textContent =
-      waitMode === 'avg' ? 'Median wait, avg 12:00–18:00 (min)' : `Median wait at ${waitMode}:00 (min)`;
+      waitMode === 'avg' ? 'Median wait, avg 13:00–19:00 (min)' : `Median wait at ${waitMode}:00 (min)`;
     renderWaitMap();
   }
 }
@@ -937,11 +999,11 @@ VIEWS.forEach(vw=>{
   viewButtons.appendChild(b);
 });
 
-let sharedHour = 'avg'; // 'avg' | 12..18 -- drives whichever view is active
+let sharedHour = 'avg'; // 'avg' | 13..19 -- drives whichever view is active
 const HOUR_OPTS = [
   {v:'avg', label:'Average'},
-  {v:12, label:'12:00'}, {v:13, label:'13:00'}, {v:14, label:'14:00'},
-  {v:15, label:'15:00'}, {v:16, label:'16:00'}, {v:17, label:'17:00'}, {v:18, label:'18:00'},
+  {v:13, label:'13:00'}, {v:14, label:'14:00'}, {v:15, label:'15:00'},
+  {v:16, label:'16:00'}, {v:17, label:'17:00'}, {v:18, label:'18:00'}, {v:19, label:'19:00'},
 ];
 const hourButtons = document.getElementById('hour-buttons');
 HOUR_OPTS.forEach(h=>{
@@ -975,7 +1037,7 @@ function median(arr){
 // hours that actually have wait data -- mirrors mart_stop_heat_wait.sql's
 // avg_exposed_wait_minutes, computed here from the same per-hour values
 // shipped in main.json rather than duplicating the dbt mart's own (single,
-// hour-collapsed) median_wait_12_18 term.
+// hour-collapsed) median_wait_13_19 term.
 const highRiskExposedWait = highRiskStops
   .map(d => {
     const hours = d.s.map((s,i)=> d.w[i]!==null ? s*d.w[i] : null).filter(v=>v!==null);
@@ -986,7 +1048,7 @@ const medianExposedWait = highRiskExposedWait.length ? median(highRiskExposedWai
 
 const stats = [
   {n: total.toLocaleString('en-US'), l:'Stops mapped'},
-  {n: '12:00\u201318:00', l:'Window studied (Jun 28, 2026)'},
+  {n: '13:00\u201319:00', l:'Window studied (Jun 28, 2026)'},
   {n: highRiskStops.length.toLocaleString('en-US') + ' (' + (100*highRiskStops.length/total).toFixed(0) + '%)', l:'High heat risk (exposure score sum \u2265 5)'},
   {n: medianExposedWait !== null ? medianExposedWait.toFixed(1) + ' min' : '\u2014', l:'Median minutes waiting in the sun, high-risk stops'},
   {n: linkedStops.length.toLocaleString('en-US') + ' (' + (100*linkedStops.length/total).toFixed(0) + '%)', l:'Linked to GTFS wait data'},
@@ -1007,4 +1069,7 @@ ensureDeck();
 updateMainLayers();
 
 window.addEventListener('resize', ()=>{ if (display==='heatmap' || display==='grid') renderHeatmapCanvas(display==='grid'); });
+}
 </script>
+</body>
+</html>

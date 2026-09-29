@@ -1,16 +1,12 @@
 """Compute median expected wait time per Milan GTFS stop, per hour band
-(12:00-18:59, one bucket per clock hour), for a representative Sunday.
+(13:00-19:59 CEST, one bucket per clock hour), for Sunday June 28 2026.
 
-Why a representative day, not June 28 2026 itself: the ATM GTFS feed is a
-rolling present-plus-near-future snapshot (feed_start_date 2026-08-31) and
-does not retain historical schedules back to June. June 28 2026 was a
-Sunday, so this uses September 13 2026 — a Sunday fully inside the feed's
-well-covered window (118 service_ids, same order of magnitude as every
-other early date in the feed; dates from Sep 14 on drop to just 5
-service_ids and are not representative). Same "day type over exact date"
-logic already used for mart_service_frequency in the Valencia repo, for
-the same underlying reason: GTFS coverage windows are short and don't
-line up with an arbitrary historical date.
+Reference day: Sunday June 28 2026, the same day as the solar exposure
+analysis. The ATM GTFS feed is version 417 (Mobility Database, dated
+2026-06-11), valid 2026-06-08 to 2026-07-05, with 118 active service_ids
+on that date (full coverage, like the other Sundays in the feed). Hours are
+CEST clock hours 13-19, matching the exposure window (= ARPA 12-18 in solar
+time).
 
 Method (per the project owner's choice — precise over cheap):
   1. Per (stop, route, hour): the scheduled departures for that route at
@@ -37,7 +33,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 GTFS_DIR = PROJECT_ROOT / "data_milan/raw/gtfs"
 OUTPUT_CSV = PROJECT_ROOT / "data_milan/seeds/stop_wait_time.csv"
 
-REFERENCE_DATE = 20260913  # Sunday, fully covered by the feed
+REFERENCE_DATE = 20260628  # Sunday, same day as the exposure analysis
 MAX_GAP_SECONDS = 3 * 3600  # drop end-of-service gaps, not real headways
 
 QUERY = f"""
@@ -82,7 +78,7 @@ intervals as (
     select stop_id, route_id, hour_bucket, (next_seconds - total_seconds) as interval_seconds
     from ordered
     where next_seconds is not null
-      and hour_bucket between 12 and 18
+      and hour_bucket between 13 and 19
       and next_seconds > total_seconds
       and (next_seconds - total_seconds) < {MAX_GAP_SECONDS}
 ),
@@ -128,7 +124,9 @@ def main() -> None:
             if not meta:
                 continue
             name, lat, lon = meta
-            writer.writerow([row_d["stop_id"], name, lat, lon, row_d["hour"], row_d["median_wait_minutes"], row_d["n_lines"]])
+            # 6 decimals ~ 0.1 m: plenty for a stop, and keeps full-precision
+            # 15-decimal floats from tripping the phone-number secrets scanner.
+            writer.writerow([row_d["stop_id"], name, round(lat, 6), round(lon, 6), row_d["hour"], row_d["median_wait_minutes"], row_d["n_lines"]])
             n_written += 1
 
     print(f"Wrote {n_written} rows to {OUTPUT_CSV}")

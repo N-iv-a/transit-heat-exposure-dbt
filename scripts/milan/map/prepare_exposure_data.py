@@ -1,7 +1,7 @@
 """Read main.mart_stop_heat_wait_hourly from gtfs.duckdb into the compact
 per-stop JSON the map template embeds directly (field names kept short since
 this ships inline in the page: id, n(ame), lo(n), la(t), sh(elter),
-e(xposure score summed 12..18, 0-7), h(ourly exposure_score, 12..18)).
+e(xposure score summed 13..19, 0-7), h(ourly exposure_score, 13..19)).
 
 See contract/map_data.md for the mart's grain and columns -- the frontend
 does not recompute exposure_score, it only aggregates per stop for display.
@@ -16,7 +16,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DUCKDB_PATH = PROJECT_ROOT / "gtfs.duckdb"
 OUTPUT_JSON = Path(__file__).resolve().parent / "data" / "exposure.json"
 
-HOURS = list(range(12, 19))
+HOURS = list(range(13, 20))
 
 QUERY = """
 select osm_node_id, stop_name, lon, lat, has_shelter, hour, exposure_score

@@ -8,8 +8,11 @@ from rasterio.transform import from_origin
 
 from solar_exposure import (
     CEST,
+    CRITICAL_HOURS,
+    arpa_solar_to_cest,
     is_in_building_shadow,
     required_height_at_distance,
+    search_radius_for,
     solar_position,
 )
 
@@ -81,7 +84,8 @@ def test_shadow_detected_when_tall_building_is_between_stop_and_sun(synthetic_ra
         # Sun due north (azimuth 0) at a low-ish elevation: the 60m building
         # 40m away requires elevation <= atan(60/40) ~= 56.3 degrees to shade.
         in_shadow = is_in_building_shadow(
-            stop_x, stop_y, azimuth_deg=0, elevation_deg=30, raster=raster, band=band, nodata=nodata
+            stop_x, stop_y, azimuth_deg=0, elevation_deg=30, raster=raster, band=band, nodata=nodata,
+            search_radius_m=80,
         )
         assert in_shadow is True
 
@@ -94,7 +98,8 @@ def test_no_shadow_when_sun_too_high_for_the_same_building(synthetic_raster):
 
         # Same building, but sun high enough that its shadow doesn't reach.
         in_shadow = is_in_building_shadow(
-            stop_x, stop_y, azimuth_deg=0, elevation_deg=70, raster=raster, band=band, nodata=nodata
+            stop_x, stop_y, azimuth_deg=0, elevation_deg=70, raster=raster, band=band, nodata=nodata,
+            search_radius_m=80,
         )
         assert in_shadow is False
 
@@ -108,7 +113,8 @@ def test_no_shadow_when_building_is_in_the_wrong_direction(synthetic_raster):
         # Sun due south: the building is north of the stop, so it can't be
         # between the stop and a southern sun.
         in_shadow = is_in_building_shadow(
-            stop_x, stop_y, azimuth_deg=180, elevation_deg=30, raster=raster, band=band, nodata=nodata
+            stop_x, stop_y, azimuth_deg=180, elevation_deg=30, raster=raster, band=band, nodata=nodata,
+            search_radius_m=80,
         )
         assert in_shadow is False
 
@@ -130,3 +136,53 @@ def test_no_shadow_beyond_search_radius(synthetic_raster):
             search_radius_m=20,  # building is 40m away, out of range
         )
         assert in_shadow is False
+
+
+def test_search_radius_for_high_and_low_sun():
+    # 45 degrees: radius equals the max height, already a multiple of the step.
+    assert 100 <= search_radius_for(45, 100, 10) <= 110
+    # Low sun -> long shadows -> larger radius; rounded up to the step.
+    low = search_radius_for(10, 100, 10)
+    high = search_radius_for(65, 100, 10)
+    assert low > high
+    assert low % 10 == 0 and high % 10 == 0
+    assert low >= 100 / math.tan(math.radians(10))
+    assert high >= 100 / math.tan(math.radians(65))
+    with pytest.raises(ValueError):
+        search_radius_for(0, 100)
+
+
+def test_tall_building_beyond_80m_casts_shadow(tmp_path):
+    width, height = 60, 60
+    data = np.zeros((height, width), dtype=np.uint16)
+    data[10, 30] = 200  # 200 m tall, 200 m north of the stop at row 30
+    path = tmp_path / "big.tif"
+    with rasterio.open(
+        path, "w", driver="GTiff", height=height, width=width, count=1,
+        dtype=data.dtype, crs="EPSG:3035", transform=from_origin(0, 600, 10, 10), nodata=65535,
+    ) as dst:
+        dst.write(data, 1)
+
+    with rasterio.open(path) as raster:
+        band = raster.read(1)
+        stop_x, stop_y = raster.xy(30, 30)
+        elevation = 45
+        radius = search_radius_for(elevation, float(band.max()))
+        assert radius >= 200
+        kwargs = dict(azimuth_deg=0, elevation_deg=elevation, raster=raster, band=band, nodata=raster.nodata)
+        assert is_in_building_shadow(stop_x, stop_y, search_radius_m=80, **kwargs) is False
+        assert is_in_building_shadow(stop_x, stop_y, search_radius_m=radius, **kwargs) is True
+
+
+def test_arpa_solar_time_maps_to_cest_plus_one_hour():
+    assert arpa_solar_to_cest(datetime.datetime(2026, 6, 28, 12, 0)) == datetime.datetime(2026, 6, 28, 13, 0)
+    assert arpa_solar_to_cest(datetime.datetime(2026, 6, 28, 23, 30)) == datetime.datetime(2026, 6, 29, 0, 30)
+
+
+def test_critical_hours_are_arpa_window_in_cest():
+    assert list(CRITICAL_HOURS) == [13, 14, 15, 16, 17, 18, 19]
+
+
+def test_sun_still_high_at_19_cest_on_study_day():
+    _, elevation = solar_position(datetime.datetime(2026, 6, 28, 19, 0, tzinfo=CEST))
+    assert elevation > 15

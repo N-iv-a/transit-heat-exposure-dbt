@@ -25,7 +25,7 @@ python prepare_main_data.py           # -> data/main.json (main deck.gl view)
 python prepare_exposure_data.py       # -> data/exposure.json
 python prepare_wait_data.py           # -> data/wait_time.json
 python render_building_backdrop.py    # -> data/buildings.png, data/buildings_deck.png
-python build_map.py                   # -> dist/milan_heat_map.html
+python build_map.py                   # -> dist/site/ (static site) + dist/milan_heat_map.html (single file)
 ```
 
 `prepare_main_data.py` must run before `render_building_backdrop.py`: the
@@ -33,9 +33,31 @@ deck.gl backdrop (`data/buildings_deck.png`) is rendered over the exact
 bounds in `data/main.json`. This is also the order `.claude/loop.json`'s
 frontend build command uses.
 
-Open `dist/milan_heat_map.html` directly in a browser — everything (data,
-the backdrop images, the vendored `vendor/deck.gl-9.4.0.min.js` bundle) is
-inlined, no server needed and no network requests made.
+`build_map.py` always writes both outputs from the same `template.html`:
+
+- **Static site, `dist/site/`** — `index.html` (no inline data), `data/*.json`,
+  `data/*.png` (backdrops), `vendor/deck.gl-9.4.0.min.js` and `og.png`. The
+  page loads its data with `fetch` (relative paths), so it needs HTTP:
+  locally `cd dist/site && python3 -m http.server 8000` then open
+  <http://localhost:8000/>; publish it by serving `dist/site/` as-is (GitHub
+  Pages: https://n-iv-a.github.io/transit-heat-exposure-dbt/). Opened from `file://` it
+  shows a readable error pointing to the single-file version.
+- **Single file, `dist/milan_heat_map.html`** — data, images and deck.gl all
+  inlined; open it directly in a browser, offline, no server. Use this one
+  to share the map or for offline use.
+
+**Publishing:** `.github/workflows/pages.yml` rebuilds the map from the
+versioned seeds and deploys `dist/site/` on every push to `main` (or by hand
+from the Actions tab). One-time manual setup: the repo must be public (free
+plan) and Settings → Pages → Build and deployment → Source must be set to
+**GitHub Actions**.
+
+Open Graph / Twitter card meta tags are in both pages. `og.png` (1200x627) is
+versioned in this folder and copied into `dist/site/` by `build_map.py`; it is
+made by `render_og_image.py` (Playwright + Chromium screenshot of the site
+served locally), which is *not* part of the build so CI needs no browser. Re-run
+it by hand when the page changes: `python3 build_map.py && python3
+render_og_image.py`.
 
 `data/` and `dist/` are gitignored: both are generated from `gtfs.duckdb`
 (itself built from the seeds in `data_milan/seeds/`), not source.
@@ -60,4 +82,6 @@ inlined, no server needed and no network requests made.
 | `prepare_exposure_data.py` | `stop_solar_exposure.csv` + OSM shelter geojson → `data/exposure.json` |
 | `prepare_wait_data.py` | `stop_wait_time.csv` → `data/wait_time.json` |
 | `render_building_backdrop.py` | Building-height raster → `data/buildings.png`, projected to match `template.html`'s own map projection |
-| `build_map.py` | Fills the template's placeholders, writes `dist/milan_heat_map.html` |
+| `build_map.py` | Fills the template's placeholders, writes `dist/site/` and `dist/milan_heat_map.html` |
+| `render_og_image.py` | Manual: screenshots the site to `og.png` (versioned) |
+| `og.png` | Social preview image, copied into `dist/site/` |

@@ -13,7 +13,7 @@ sources:
       - name: stop_solar_exposure
         description: >
           One row per (OSM stop node, hour), for June 28 2026 (the hottest
-          day found in the ARPA analysis), hours 12-18 (the empirical
+          day found in the ARPA analysis), hours 13-19 CEST (the empirical
           critical window). stop_id here is an OSM node id ("node/12345"),
           not a GTFS stop_id -- see stop_wait_time below.
       - name: stop_wait_time

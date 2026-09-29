@@ -1,6 +1,6 @@
 """Read main.int_stop_wait_time from gtfs.duckdb into the compact per-stop
 JSON the map template embeds (id, n(ame), lo(n), la(t), w(ait minutes per
-hour, 12..18, null where the stop has no service that hour), nl (lines
+hour, 13..19, null where the stop has no service that hour), nl (lines
 observed per hour)). Output format unchanged from the CSV-based version.
 """
 
@@ -14,7 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DUCKDB_PATH = PROJECT_ROOT / "gtfs.duckdb"
 OUTPUT_JSON = Path(__file__).resolve().parent / "data" / "wait_time.json"
 
-HOURS = range(12, 19)
+HOURS = range(13, 20)
 
 QUERY = """
 select gtfs_stop_id, stop_name, lon, lat, hour, median_wait_minutes, n_lines
@@ -39,7 +39,7 @@ def main() -> None:
         w, nl = [], []
         for h in HOURS:
             if h in hours:
-                w.append(hours[h][0])
+                w.append(round(hours[h][0], 2) if hours[h][0] is not None else None)
                 nl.append(hours[h][1])
             else:
                 w.append(None)

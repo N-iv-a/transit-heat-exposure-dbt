@@ -1,7 +1,7 @@
 {#
   Grain change from stg_stop_solar_exposure (stop x hour) to stop: for each
   of the 2,931 OSM stops, how exposed it is over the 7 critical hours
-  (12:00-18:00, June 28 2026 -- the hottest day found in the ARPA analysis).
+  (13:00-19:00 CEST, June 28 2026 -- the hottest day found in the ARPA analysis).
 
   Two readings of exposure, side by side:
 

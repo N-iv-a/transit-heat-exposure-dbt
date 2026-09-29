@@ -13,8 +13,13 @@ option considered.
 
 ## 1. GTFS (transit schedule data)
 
-**Source:** ATM Milano, via Comune di Milano open data
-(`dati.comune.milano.it/gtfs.zip`) — already in hand, no blocker.
+**Source:** ATM Milano, via Comune di Milano open data (dataset DS929,
+`dati.comune.milano.it/gtfs.zip`; licence as stated on the DS929 page —
+check it before publishing). The version used is the archived **feed v417**
+(`feed_start_date` 2026-06-08, end 2026-07-05, which covers the study day
+June 28), downloaded from the Mobility Database (mobilitydatabase.org,
+source id 2666, snapshot 2026-06-11) into `data_milan/raw/gtfs/` — not
+versioned, see §7.
 
 **Not evaluated as an issue:** unlike Valencia (EMT + GVA, two feeds with
 different schemas), Milan is a single clean agency feed. This means the
@@ -142,19 +147,33 @@ Files: `data_milan/seeds/weather/arpa_lombardia_temp_2026_raw.csv` (as
 downloaded, 10-minute readings) and `..._clean.csv` (parsed dates/values,
 station names joined in).
 
+### Time base: ARPA hours are solar time (UTC+1)
+
+The ARPA dataset "Dati sensori meteo" (dati.lombardia.it 647i-nhxk)
+declares its timestamps in **solar time (UTC+1)**, not in CEST (UTC+2,
+daylight saving). The `hour` column of `arpa_lombardia_temp_2026_clean.csv`
+was taken from the timestamp without conversion, so it is **ARPA solar
+time**; the CSVs are not regenerated. The empirical window "12–18" is
+therefore **13–19 CEST**, and that is what the solar and wait analyses use
+(`arpa_solar_to_cest()` in `solar_exposure.py`: +1 h). An earlier version
+used 12–18 as CEST, a one-hour shift, now fixed.
+
 ### Findings — critical hours
 
 % of all readings (6 stations, full period) exceeding 30°C, by hour of day:
 
-| Hour | % >30°C | | Hour | % >30°C |
+| Hour (ARPA solar) | % >30°C | | Hour (ARPA solar) | % >30°C |
 |---|---|---|---|---|
 | 11 | 44.7 | | 15 | 64.4 |
 | **12** | **54.6** | | 16 | 64.2 |
 | 13 | 61.4 | | **17** | **62.3** |
 | **14** | **64.9 (peak)** | | 18 | 55.8 |
 
-**Critical window: 12:00–18:00**, core 13:00–17:00 (>60% of readings over
-threshold). This empirically confirms the standard climatological
+Same table in CEST: 12→13:00, 13→14:00, **14→15:00 (peak)**, 15→16:00,
+16→17:00, 17→18:00, 18→19:00.
+
+**Critical window: 12:00–18:00 in ARPA time, i.e. 13:00–19:00 CEST**, core
+13:00–17:00 ARPA (>60% of readings over threshold). This empirically confirms the standard climatological
 assumption for this latitude/climate, but now it's backed by this specific
 summer's actual station data rather than assumed.
 
@@ -189,50 +208,50 @@ visible in the final README rather than smoothing it away.
 ## 6. Shadow-casting implementation and its error margin
 
 **Script:** `scripts/milan/solar_exposure.py`, tested by
-`scripts/milan/test_solar_exposure.py` (7 tests, all passing).
+`scripts/milan/test_solar_exposure.py` (12 tests, all passing).
 
 **Method:** for each stop and each hour, get sun azimuth/elevation via
 `pysolar`, then march from the stop toward the sun over the building-height
 raster (reprojected stop coordinates via `pyproj`, EPSG:4326 → EPSG:3035)
-in 10m steps up to `SEARCH_RADIUS_M = 80`. At each step, a building is
+in 10m steps up to a per-hour radius (see below). At each step, a building is
 considered tall enough to cast a shadow back to the stop if its height
 exceeds `distance * tan(solar elevation)`. First hit along the ray wins.
 
 **Study date:** June 28, 2026 — the hottest day found in §5, not an
-arbitrary solstice pick. Hours: 12:00–18:00 local (CEST), matching the
-empirical critical window from §5.
+arbitrary solstice pick. Hours: 13:00–19:00 CEST, i.e. the ARPA solar-time
+window 12–18 from §5 converted to local clock time.
 
-**Error margin, computed and printed by the script itself, not asserted
-after the fact:**
+**Search radius (no fixed cap):** for each hour the march goes out to
+`max raster height / tan(elevation)`, rounded up to the next 10m step
+(`search_radius_for()`). The raster's tallest building is 125m, so no
+building can cast a shadow beyond that radius and truncation misses
+nothing. The previous fixed 80m cap could miss shadows at 17:00 and 18:00.
+Radius per hour, printed by the script:
 
-| Hour | Elevation | Max height missable beyond 80m |
+| Hour | Elevation | Search radius |
 |---|---|---|
-| 12:00 | 61.7° | 149m |
-| 13:00 | 67.2° | 190m |
-| 14:00 | 66.8° | 187m |
-| 15:00 | 60.8° | 143m |
-| 16:00 | 51.9° | 102m |
-| 17:00 | 41.8° | 71m |
-| 18:00 | 31.3° | 49m |
+| 13:00 | 67.2° | 60m |
+| 14:00 | 66.8° | 60m |
+| 15:00 | 60.8° | 70m |
+| 16:00 | 51.9° | 100m |
+| 17:00 | 41.8° | 140m |
+| 18:00 | 31.3° | 210m |
+| 19:00 | 20.9° | 330m |
 
-The raster's tallest building is 125m. So for 12:00–16:00, the truncation
-at 80m cannot miss anything in this dataset — the required height to be
-missed already exceeds what exists. Real (bounded) risk of under-detecting
-shadow starts at 17:00 (buildings >71m beyond 80m) and is largest at 18:00
-(buildings >49m beyond 80m). This is a declared limitation of the last two
-hours in the window, not the whole result.
+(The old fixed 80m cap would have missed shadows from 17:00 on.)
 
 **Result on the real data (2,931 stops × 7 hours = 20,517 rows):**
 
-- % of (stop, hour) pairs exposed (no shadow, no shelter): 37.4% overall
+- % of (stop, hour) pairs exposed (no shadow, no shelter): 34.9% overall
+  (42.6% at 13:00 down to 22.2% at 19:00)
 - Physically sane pattern: only 4.9–5.4% of stops are in building shadow at
   solar noon (13:00–14:00, sun nearly overhead → short shadows), rising to
-  32.4% by 18:00 (low sun → long shadows) — the model responds to solar
+  32.5% at 18:00 and 46.6% at 19:00 (low sun → long shadows) — the model responds to solar
   geometry the way it should, not noise
-- **724 stops (25%) are exposed at every one of the 7 hours** — never
+- **562 stops (19%) are exposed at every one of the 7 hours** — never
   shadowed by a building, never sheltered. These are the actionable
   finding: candidates for shelter/shade investment.
-- 1,612 stops (55%) are never exposed in the window (shadowed at some
+- 1,624 stops (55%) are never exposed in the window (shadowed at some
   point, sheltered, or both)
 
 Output seed: `data_milan/seeds/stop_solar_exposure.csv` (columns: stop_id,
@@ -266,18 +285,16 @@ shadow), so it's its own script, its own seed, and its own map rather than
 a new column bolted onto `stop_solar_exposure.csv`.
 
 **Script:** `scripts/milan/wait_time.py`. **Seed:**
-`data_milan/seeds/stop_wait_time.csv` (28,655 stop×hour rows, 4,192 distinct
-GTFS stops).
+`data_milan/seeds/stop_wait_time.csv` (28,911 stop×hour rows, 4,246 distinct
+GTFS stops; median wait 9.8 min).
 
-**Reference day, again not June 28 itself.** The ATM GTFS feed is a
-present-plus-near-future snapshot (`feed_start_date` 2026-08-31) and simply
-doesn't contain June's schedule. June 28 2026 was a Sunday, so **September
-13, 2026** — a Sunday fully inside the feed's well-covered window (118
-active service_ids, versus just 5 for dates from Sep 14 on, which are
-clearly not representative) — stands in as the day-type. Confirmed
-acceptable: service patterns don't shift much over a few months when
-schools are still in session, which they were in both June and this
-September window.
+**Reference day: June 28 2026, the same day as the exposure analysis (§6).**
+The ATM GTFS feed is version 417 (Mobility Database, dated 2026-06-11),
+valid 2026-06-08 to 2026-07-05, with 118 active service_ids on 2026-06-28
+(a Sunday, full coverage like the other Sundays). Hours 13–19 CEST, same
+window as the exposure. *Superseded:* an earlier version used the
+September 13 feed as a stand-in day because June was missing; that
+approximation is gone, exposure and wait now refer to the same day.
 
 **Method, precise over cheap (the project owner's explicit choice over a
 cheaper combined-schedule shortcut):**
@@ -298,7 +315,7 @@ cheaper combined-schedule shortcut):**
 
 **ID-space gap, now bridged in dbt:** GTFS `stop_id` and the OSM node ids
 used for the exposure map are two different ID spaces — this map still
-plots GTFS's own 4,192 stops (metro, tram, bus) at GTFS's own coordinates,
+plots GTFS's own 4,246 stops (metro, tram, bus) at GTFS's own coordinates,
 independently of the 2,931 OSM stops in the exposure map. The two are
 reconciled in the dbt layer (`int_osm_gtfs_stop_bridge`, §8), not here.
 Nearest-point alone turned out to be the weaker key: most OSM stops carry
@@ -337,9 +354,9 @@ equivalent to `data/raw/` and no per-agency file list to iterate.
   building shadow, `var('shelter_exposure_factor', 0.5)` in the sun under a
   shelter, 1 in unsheltered sun (see "Still open", decided). The mart sums
   it to `exposure_score_hours` (0–7) and `risk_level` (`high` ≥ 5, `low`
-  ≤ 1, else `medium`): 1,056 high / 1,784 medium / 91 low. The original
+  ≤ 1, else `medium`): 941 high / 1,835 medium / 155 low. The original
   binary reading is kept as `hours_exposed_binary` / `risk_level_binary`
-  (`high` = exposed all 7 hours — the 724-stop finding from §6).
+  (`high` = exposed all 7 hours — the 562-stop finding from §6).
 - `mart_stop_heat_wait_hourly` — stop × hour (20,517 rows), the map's
   data source; columns fixed by `contract/map_data.md`.
 - `int_osm_gtfs_stop_bridge` — one row per OSM stop (from the OSM export,
@@ -348,23 +365,22 @@ equivalent to `data/raw/` and no per-agency file list to iterate.
   stale tags); otherwise `nearest` = closest GTFS stop within 30 m (tie-break
   on `stop_id`); otherwise `unmatched`. Distances are haversine in plain SQL
   (`macros/haversine_distance_m.sql`, no spatial extension). Result:
-  2,466 `ref` (median 8.6 m), 125 `nearest` (median 14.1 m), 340
-  `unmatched`.
+  2,511 `ref` (median 8.6 m), 116 `nearest` (median 14.8 m), 304
+  `unmatched` (10.4%).
 - `mart_stop_heat_wait` — `mart_stop_heat_risk` + bridge + wait time, per
   OSM stop. `avg_exposed_wait_minutes` = mean, over the hours with service,
   of (hourly `exposure_score` × that hour's median wait), taken from
   `mart_stop_heat_wait_hourly` — the same definition the map uses, pinned
   by `assert_heat_wait_avg_matches_hourly.sql`: average minutes a passenger
-  waits in the sun. Median 8.9 min for `high`-risk stops (p90 11.6), 4.2
-  for `medium`, 1.0 for `low`. Caveat, declared: exposure is computed for
-  June 28, wait time for the September 13 reference day —
-  two different days, read as a v1 approximation, not a same-day measure.
+  waits in the sun. Median 8.6 min for `high`-risk stops (p90 11.4), 4.0
+  for `medium`, 1.2 for `low`. Exposure and wait both refer to June 28
+  2026 (feed v417).
 - Tests: `not_null`/`accepted_values` on hour and bucket/risk columns, plus
   a singular uniqueness test (`assert_stg_stop_solar_exposure_unique_node_hour.sql`,
   mirroring `assert_fct_trips_unique_trip_date.sql`'s pattern) and
   `unique`/`not_null` on `mart_stop_heat_risk.osm_node_id`. All pass;
-  `mart_stop_heat_risk`'s risk_level_binary counts (724 high / 595 medium /
-  1,612 low) match §6's findings exactly; `assert_exposure_score_valid.sql`
+  `mart_stop_heat_risk`'s risk_level_binary counts (562 high / 745 medium /
+  1,624 low) match §6's findings exactly; `assert_exposure_score_valid.sql`
   pins the hourly score to {0, factor, 1}.
 
 ## 9. Running it

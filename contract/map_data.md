@@ -12,7 +12,7 @@ Grain: una riga per (`osm_node_id`, `hour`), 2.931 fermate × 7 ore = 20.517 rig
 | `osm_node_id` | VARCHAR | `node/N`, non nullo |
 | `stop_name` | VARCHAR | nome OSM, può essere vuoto |
 | `lon`, `lat` | DOUBLE | coordinate OSM della fermata (WGS84) |
-| `hour` | INTEGER | 12–18 |
+| `hour` | INTEGER | 13–19, ora locale CEST (UTC+2) |
 | `in_building_shadow` | BOOLEAN | |
 | `has_shelter` | BOOLEAN | |
 | `exposure_score` | DOUBLE | 0 ombra edificio, `shelter_exposure_factor` (0,5) sole con pensilina, 1 sole senza pensilina |
@@ -22,11 +22,13 @@ Grain: una riga per (`osm_node_id`, `hour`), 2.931 fermate × 7 ore = 20.517 rig
 | `exposed_wait_minutes` | DOUBLE | `exposure_score × wait_minutes`; NULL se `wait_minutes` è NULL |
 | `risk_level` | VARCHAR | della fermata (non dell'ora): `low`, `medium`, `high` |
 
+Esposizione e attesa si riferiscono allo stesso giorno, domenica 28/06/2026 (attesa dal feed GTFS ATM versione 417, valido dall'8/06 al 5/07/2026). La finestra 13–19 CEST corrisponde alle ore 12–18 in ora solare dei dati ARPA.
+
 ## `main.int_stop_wait_time` — vista attesa
 Invariata: una riga per (`gtfs_stop_id`, `hour`) con `stop_name`, `lat`, `lon`, `median_wait_minutes`, `n_lines`, `wait_time_bucket`.
 
 ## Codifica visiva concordata (vista principale)
-- Una colonna 3D per fermata OSM, per l'ora selezionata o la media 12–18.
+- Una colonna 3D per fermata OSM, per l'ora selezionata o la media 13–19.
 - Altezza = `wait_minutes`, tetto a 25 min.
 - Colore = `exposure_score`: ombra / pensilina al sole / sole pieno.
 - Fermate con `wait_minutes` NULL: punto grigio a terra, senza colonna.

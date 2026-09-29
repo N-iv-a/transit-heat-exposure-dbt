@@ -4,7 +4,7 @@
   (int_osm_gtfs_stop_bridge.sql), for stops that could be matched.
 
   avg_exposed_wait_minutes is the average, over the 7 critical hours
-  (12:00-18:00), of exposed_wait_minutes as defined in
+  (13:00-19:00 CEST), of exposed_wait_minutes as defined in
   mart_stop_heat_wait_hourly.sql (exposure_score * median_wait_minutes for
   that hour -- i.e. the same per-hour definition used by the map), ignoring
   hours with no wait data. It's NULL when the stop has no GTFS match
@@ -39,14 +39,14 @@ bridge as (
 
 ),
 
-wait_12_18 as (
+wait_13_19 as (
 
     select
         gtfs_stop_id,
-        median(median_wait_minutes) as median_wait_12_18
+        median(median_wait_minutes) as median_wait_13_19
 
     from {{ ref('int_stop_wait_time') }}
-    where hour between 12 and 18
+    where hour between 13 and 19
     group by 1
 
 ),
@@ -79,10 +79,10 @@ select
     b.gtfs_stop_id,
     b.match_method,
     b.distance_m,
-    w.median_wait_12_18,
+    w.median_wait_13_19,
     aew.avg_exposed_wait_minutes
 
 from heat_risk hr
 left join bridge b on hr.osm_node_id = b.osm_node_id
-left join wait_12_18 w on b.gtfs_stop_id = w.gtfs_stop_id
+left join wait_13_19 w on b.gtfs_stop_id = w.gtfs_stop_id
 left join avg_exposed_wait aew on hr.osm_node_id = aew.osm_node_id
