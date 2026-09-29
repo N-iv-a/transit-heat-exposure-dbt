@@ -54,7 +54,7 @@ bridge as (
 wait_time as (
 
     select gtfs_stop_id, hour, median_wait_minutes, wait_mixed_minutes,
-           wait_any_line_minutes, wait_least_frequent_minutes
+           wait_any_line_minutes, wait_least_frequent_minutes, n_departures
     from {{ ref('int_stop_wait_time') }}
 
 ),
@@ -82,6 +82,9 @@ select
     least(w.wait_any_line_minutes, w.wait_mixed_minutes) as wait_minutes_low,
     w.wait_least_frequent_minutes as wait_minutes_high,
     w.median_wait_minutes as wait_minutes_random,
+    -- 0 = matched to a GTFS stop but no departure in the hour; NULL = unmatched
+    case when b.gtfs_stop_id is null then null
+         else coalesce(w.n_departures, 0) end as n_departures,
     e.exposure_score * w.wait_mixed_minutes as exposed_wait_minutes,
     r.risk_level,
     r.exposure_decile,

@@ -22,6 +22,7 @@ Grain: una riga per (`osm_node_id`, `hour`), 2.931 fermate × 7 ore = 20.517 rig
 | `wait_minutes` | DOUBLE | stima centrale dell'attesa a quell'ora, modello misto (arrivi casuali + quota sincronizzata sull'orario, vedi T12); NULL se non abbinata o senza servizio in quell'ora |
 | `wait_minutes_low` | DOUBLE | limite inferiore: min(attesa per "qualsiasi linea" con le partenze di tutte le linee combinate, stima centrale); NULL come sopra |
 | `wait_minutes_high` | DOUBLE | limite superiore: headway/2 della linea meno frequente; NULL come sopra |
+| `n_departures` | INTEGER | partenze programmate (tutte le linee) dalla fermata GTFS in quell'ora; 0 se nessuna; NULL se non abbinata. Proxy dell'offerta, non della domanda |
 | `wait_minutes_random` | DOUBLE | vecchia stima, headway/2 con arrivi casuali (mediana tra le linee), per confronto |
 | `exposed_wait_minutes` | DOUBLE | `exposure_score × wait_minutes`; NULL se `wait_minutes` è NULL |
 | `risk_level` | VARCHAR | della fermata (non dell'ora): `low`, `medium`, `high` |
@@ -36,13 +37,16 @@ Una riga per albero valido del censimento comunale (ds2484, estrazione 31/03/202
 In `mart_stop_heat_risk` e `mart_stop_heat_wait_hourly` (a livello fermata): `n_trees_20m` INTEGER (alberi entro 20 m), `tree_shade_hours` INTEGER (ore 13–19 in ombra di chioma).
 
 ## `main.int_stop_wait_time` — vista attesa
-Una riga per (`gtfs_stop_id`, `hour`) con `stop_name`, `lat`, `lon`, `median_wait_minutes` (headway/2 casuale, invariata), `n_lines`, `wait_time_bucket` e in più `median_headway_minutes`, `wait_any_line_minutes`, `wait_least_frequent_minutes`, `wait_mixed_minutes` (stessa definizione di `wait_minutes`, `wait_minutes_low`, `wait_minutes_high` sopra). `wait_time_bucket` si calcola su `wait_mixed_minutes`.
+Una riga per (`gtfs_stop_id`, `hour`) con `stop_name`, `lat`, `lon`, `median_wait_minutes` (headway/2 casuale, invariata), `n_lines`, `wait_time_bucket` e in più `median_headway_minutes`, `wait_any_line_minutes`, `wait_least_frequent_minutes`, `wait_mixed_minutes`, `n_departures` (stessa definizione di `wait_minutes`, `wait_minutes_low`, `wait_minutes_high` sopra). `wait_time_bucket` si calcola su `wait_mixed_minutes`.
 
-## Codifica visiva concordata (vista principale)
-- Una colonna 3D per fermata OSM, per l'ora selezionata o la media 13–19.
-- Altezza = `wait_minutes` (stima centrale), tetto a 25 min; il tooltip mostra anche l'intervallo `wait_minutes_low`–`wait_minutes_high`.
-- Colore = `exposure_score`: ombra / pensilina al sole / sole pieno.
-- Fermate con `wait_minutes` NULL: punto grigio a terra, senza colonna.
+## Codifica visiva concordata (T17; sostituisce le colonne 3D)
+Tutte le viste (Sun-exposed wait, Exposure, Wait, Trees) usano la stessa impostazione: mappa deck.gl 2D vista dall'alto, stesso sfondo edifici, stesso selettore ore (13–19 + media), pulsante **Heatmap** attivabile (HeatmapLayer, peso = la metrica della vista), nessuna modalità a griglia.
+- **Vista iniziale, Sun-exposed wait:** un punto per fermata OSM; colore = `exposed_wait_minutes` (ora selezionata o media) in 5 classi a quantili, scala sequenziale adatta ai daltonici (tipo YlOrRd o cividis), con i minuti reali in legenda; raggio = `n_departures` (radice, con minimo e massimo); ombra degli edifici dell'ora selezionata sovrapposta; bussola del sole.
+- **Exposure:** colore = `exposure_score` (ora) o somma 0–7 (media), stessa famiglia di scala; bussola del sole; ombra dell'ora.
+- Fermate `unmatched`: cerchio grigio vuoto (bordo, nessun riempimento), in legenda "not linked to a GTFS stop". Fermate abbinate senza servizio nell'ora: punto grigio pieno piccolo.
+- Fermate con `risk_level_stable = false`: anello tratteggiato (solo Exposure e vista iniziale).
+- Tooltip fermata: striscia con le 7 ore (punteggio e minuti di attesa per ora).
+- Pannello priorità: prime 20 fermate per `exposed_wait_minutes` (ora selezionata o media), cliccabili: centra e evidenzia la fermata sulla mappa.
 
 ## Vista alberi (T15)
 - Alberi come punti a terra, raggio = metà `crown_diameter_m` in metri, colore per `height_m`; caricati solo quando si apre la vista.

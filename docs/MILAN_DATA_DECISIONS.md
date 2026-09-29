@@ -443,6 +443,21 @@ minuti di attesa al sole diretto, non un indice di stress termico):
 Il valore cambia di circa il 47% fra 0 e 0,6 per il rischio alto: l'ordine dei
 livelli resta, ma l'entità assoluta dipende da un'ipotesi.
 
+### 7.2 Partenze per fermata e ora (T16)
+
+`n_departures` conta le partenze programmate di tutte le linee dalla fermata
+GTFS nell'ora (trip attivi il 28/06/2026). È un **proxy dell'offerta, non
+della domanda**: i saliti ATM non sono dati aperti. Nella mappa decide la
+dimensione del punto, mentre il colore resta sui minuti di attesa al sole.
+
+Il seed ha ora una riga per ogni (fermata, ora) con almeno una partenza:
+186 righe hanno `n_departures` > 0 ma attesa NULL (per esempio una sola
+partenza nell'ora, quindi nessun intervallo), con `n_lines` = 0. Per questo i
+test not_null su `sync_share` e `wait_mixed_minutes` valgono solo dove
+`median_headway_minutes` non è NULL. Nel mart orario `n_departures` è 0 per
+fermate abbinate senza partenze e NULL per quelle non abbinate. Distribuzione
+per fermata-ora: mediana 4, p90 9, massimo 52.
+
 ## 8. dbt layer
 
 **Ingestion:** `ingestion/load_milan.py`, mirroring `load_gtfs.py`'s

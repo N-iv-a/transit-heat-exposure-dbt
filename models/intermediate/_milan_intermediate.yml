@@ -27,12 +27,24 @@ models:
           Share of riders synchronised to the timetable, 0 to
           var sync_share_max (0 for H <= 5 min, max for H >= 11 min).
         tests:
+          - not_null:
+              config:
+                where: "median_headway_minutes is not null"
+      - name: n_departures
+        description: >
+          Scheduled departures of all lines from the stop in the hour (supply
+          proxy, not demand). Rows with n_departures > 0 but no computable
+          wait have NULL wait columns.
+        tests:
           - not_null
       - name: wait_mixed_minutes
         description: >
           Central wait estimate, (1-s)*H/2 + s*least(H/2, sync_wait_minutes).
+          NULL where no wait is computable.
         tests:
-          - not_null
+          - not_null:
+              config:
+                where: "median_headway_minutes is not null"
       - name: wait_time_bucket
         description: Bucket on wait_mixed_minutes (low < 10, medium < 25, high).
         tests:

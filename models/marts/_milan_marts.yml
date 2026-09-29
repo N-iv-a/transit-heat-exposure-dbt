@@ -83,6 +83,10 @@ models:
         description: Upper bound, headway/2 of the least frequent line.
       - name: wait_minutes_random
         description: Old estimate, headway/2 with random arrivals (median across lines).
+      - name: n_departures
+        description: >
+          Scheduled departures of all lines from the GTFS stop in the hour;
+          0 if matched but none, NULL if unmatched. Supply proxy, not demand.
       - name: exposed_wait_minutes
         description: exposure_score * wait_minutes (mixed).
       - name: risk_level
