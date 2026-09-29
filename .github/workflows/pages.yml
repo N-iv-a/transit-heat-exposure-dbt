@@ -1,0 +1,56 @@
+# Pubblica la mappa di Milano su GitHub Pages: build dai seed versionati in
+# data_milan/seeds (nessun feed GTFS serve), poi upload di scripts/milan/map/dist/site/.
+# Prerequisiti manuali: repo pubblico e Settings → Pages → Source: GitHub Actions.
+name: pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            scripts/milan/requirements.txt
+
+      - name: Dipendenze
+        run: pip install -r requirements.txt -r scripts/milan/requirements.txt
+
+      - name: Build mappa (comando frontend di .claude/loop.json)
+        run: bash -c "$(jq -r '.commands.frontend.build' .claude/loop.json)"
+
+      - name: Test mappa (comando frontend di .claude/loop.json)
+        run: bash -c "$(jq -r '.commands.frontend.test' .claude/loop.json)"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: scripts/milan/map/dist/site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
