@@ -9,6 +9,8 @@ Output `data/main.json`:
          "s": [exposure_score x7, hours 13..19],
          "w": [wait_minutes (mixed model, central)|null x7, hours 13..19],
          "wl": [wait_minutes_low|null x7], "wh": [wait_minutes_high|null x7],
+         "x": [exposed_wait_minutes|null x7], "d": [n_departures|null x7],
+         "u": 1 if match_method = 'unmatched' (not linked to a GTFS stop) else 0,
          "dc": exposure_decile 1..10, "st": risk_level_stable 1/0,
          "ts": tree_shade_hours 0..7, "nt": n_trees_20m}
       ],
@@ -17,9 +19,8 @@ Output `data/main.json`:
     }
 
 One record per osm_node_id (the mart's grain is osm_node_id x hour). This
-is the only script `render_building_backdrop.py`'s deck.gl backdrop and
-`build_map.py`'s __MAIN_DATA_JSON__ placeholder depend on -- run it before
-those two (see .claude/loop.json's frontend build command for the order).
+is the file `render_building_backdrop.py` (bounds), `render_shadow_layers.py`
+(bounds) and `build_map.py` depend on -- run it before those (see .claude/loop.json's frontend build command for the order).
 """
 
 import json
@@ -40,8 +41,8 @@ HOURS = list(range(13, 20))
 
 QUERY = """
 select osm_node_id, stop_name, lon, lat, hour, exposure_score, wait_minutes,
-       wait_minutes_low, wait_minutes_high, exposure_decile, risk_level_stable,
-       tree_shade_hours, n_trees_20m
+       wait_minutes_low, wait_minutes_high, exposed_wait_minutes, n_departures,
+       match_method, exposure_decile, risk_level_stable, tree_shade_hours, n_trees_20m
 from main.mart_stop_heat_wait_hourly
 order by osm_node_id, hour
 """
@@ -85,16 +86,19 @@ def main() -> None:
 
     by_stop: dict[str, dict] = {}
     for (osm_node_id, stop_name, lon, lat, hour, exposure_score, wait_minutes,
-         wait_low, wait_high, decile, stable, tree_hours, n_trees) in rows:
+         wait_low, wait_high, exposed_wait, n_dep, match_method, decile, stable, tree_hours, n_trees) in rows:
         stop = by_stop.setdefault(
             osm_node_id,
             {"n": stop_name or "", "lo": lon, "la": lat, "scores": {}, "waits": {}, "lows": {}, "highs": {},
+             "exposed": {}, "deps": {}, "u": match_method == "unmatched",
              "dc": decile, "st": stable, "ts": tree_hours or 0, "nt": n_trees or 0},
         )
         stop["scores"][hour] = exposure_score
         stop["waits"][hour] = wait_minutes
         stop["lows"][hour] = wait_low
         stop["highs"][hour] = wait_high
+        stop["exposed"][hour] = exposed_wait
+        stop["deps"][hour] = n_dep
 
     stops = []
     lons, lats = [], []
@@ -111,6 +115,9 @@ def main() -> None:
                 "w": [_r(stop["waits"][hr]) for hr in HOURS],
                 "wl": [_r(stop["lows"][hr]) for hr in HOURS],
                 "wh": [_r(stop["highs"][hr]) for hr in HOURS],
+                "x": [_r(stop["exposed"][hr]) for hr in HOURS],
+                "d": [stop["deps"][hr] for hr in HOURS],
+                "u": 1 if stop["u"] else 0,
                 "dc": stop["dc"],
                 "st": 1 if stop["st"] else 0,
                 "ts": stop["ts"],

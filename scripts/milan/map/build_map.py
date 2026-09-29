@@ -13,6 +13,11 @@ The tree data (data/trees.json, ~3 MB) is a separate file on the site, fetched
 the first time the Trees view opens. In the single file it is inlined too,
 unless the file would exceed SINGLE_MAX_MB: then only the trees that shade a
 stop are inlined and the Trees view says the full map is on the site.
+
+The 7 hourly shadow overlays (data/shadow_13.png .. shadow_19.png, made by
+render_shadow_layers.py, ~0.5 MB together) go into both outputs. If the single
+file would still exceed SINGLE_TOTAL_MB it ships without them (the page then
+says the shadow overlay is on the site).
 """
 
 import base64
@@ -22,6 +27,7 @@ import shutil
 from pathlib import Path
 
 import prepare_tree_data as trees_mod
+import render_shadow_layers as shadow_mod
 
 HERE = Path(__file__).resolve().parent
 TEMPLATE = HERE / "template.html"
@@ -36,13 +42,16 @@ DECK_NAME = "deck.gl-9.4.0.min.js"
 JSON_FILES = {"main": "main.json", "exposure": "exposure.json", "wait": "wait_time.json"}
 TREES_FILE = "trees.json"
 SINGLE_MAX_MB = 12
-IMAGES = {"buildings": "buildings.png", "buildings_deck": "buildings_deck.png"}
+SINGLE_TOTAL_MB = 13
+BACKDROP = "buildings_deck.png"
+SHADOWS = {hour: shadow_mod.shadow_file(hour) for hour in shadow_mod.HOURS}
+IMAGES = [BACKDROP, *SHADOWS.values()]
 
 PLACEHOLDERS = [
     "__DECKGL_TAG__",
     "__INLINE_DATA__",
-    "__BUILDINGS_URL__",
     "__BUILDINGS_DECK_URL__",
+    "__SHADOW_URLS__",
 ]
 
 # `</script` (any case) inside inlined text would close the wrapping <script>.
@@ -96,19 +105,24 @@ def build_single(template: str) -> None:
         + "}"
     )
     trees_text = (DATA_DIR / TREES_FILE).read_text(encoding="utf-8").strip()
-    base_mb = (
-        len(deck_js) + len(inline) + len(template) + sum((DATA_DIR / n).stat().st_size for n in IMAGES.values()) * 4 // 3
-    ) / 1024 / 1024
+    backdrop_bytes = (DATA_DIR / BACKDROP).stat().st_size * 4 // 3
+    shadow_bytes = sum((DATA_DIR / n).stat().st_size for n in SHADOWS.values()) * 4 // 3
+    base_mb = (len(deck_js) + len(inline) + len(template) + backdrop_bytes) / 1024 / 1024
     if base_mb + len(trees_text) / 1024 / 1024 > SINGLE_MAX_MB:
         trees_text = json.dumps(_shading_subset(json.loads(trees_text)), separators=(",", ":"), ensure_ascii=False)
         print(f"note: single file would exceed {SINGLE_MAX_MB} MB, inlining only the shading trees")
     inline = inline[:-1] + ',"trees":' + trees_text + "}"
+    total_mb = base_mb + len(trees_text) / 1024 / 1024 + shadow_bytes / 1024 / 1024
+    shadow_urls = {str(h): _data_uri(n) for h, n in SHADOWS.items()}
+    if total_mb > SINGLE_TOTAL_MB:
+        shadow_urls = {}
+        print(f"note: single file would exceed {SINGLE_TOTAL_MB} MB, leaving out the shadow overlay")
     html = _fill(
         template,
         {
             # deck.gl goes last-ish: it is big, and must not be re-scanned
-            "__BUILDINGS_URL__": _data_uri(IMAGES["buildings"]),
-            "__BUILDINGS_DECK_URL__": _data_uri(IMAGES["buildings_deck"]),
+            "__BUILDINGS_DECK_URL__": _data_uri(BACKDROP),
+            "__SHADOW_URLS__": json.dumps(shadow_urls),
             "__INLINE_DATA__": _escape_script(inline),
             "__DECKGL_TAG__": f"<script>{deck_js}</script>",
         },
@@ -124,7 +138,7 @@ def build_site(template: str) -> None:
     (SITE / "data").mkdir(parents=True)
     (SITE / "vendor").mkdir()
 
-    for fname in [*JSON_FILES.values(), TREES_FILE, *IMAGES.values()]:
+    for fname in [*JSON_FILES.values(), TREES_FILE, *IMAGES]:
         shutil.copy2(DATA_DIR / fname, SITE / "data" / fname)
     shutil.copy2(VENDOR_DIR / DECK_NAME, SITE / "vendor" / DECK_NAME)
     if OG_IMAGE.exists():
@@ -135,8 +149,8 @@ def build_site(template: str) -> None:
     html = _fill(
         template,
         {
-            "__BUILDINGS_URL__": f"data/{IMAGES['buildings']}",
-            "__BUILDINGS_DECK_URL__": f"data/{IMAGES['buildings_deck']}",
+            "__BUILDINGS_DECK_URL__": f"data/{BACKDROP}",
+            "__SHADOW_URLS__": json.dumps({str(h): f"data/{n}" for h, n in SHADOWS.items()}),
             "__INLINE_DATA__": "null",
             "__DECKGL_TAG__": f'<script src="vendor/{DECK_NAME}"></script>',
         },
@@ -153,8 +167,10 @@ def build_site(template: str) -> None:
 
 def main() -> None:
     template = TEMPLATE.read_text(encoding="utf-8")
-    trees_mod.main()  # data/trees.json, so the build command in loop.json stays unchanged
-    for name in [*JSON_FILES.values(), TREES_FILE, *IMAGES.values()]:
+    # data/trees.json and the shadow PNGs are made here, so the build command in loop.json stays unchanged
+    trees_mod.main()
+    shadow_mod.main()
+    for name in [*JSON_FILES.values(), TREES_FILE, *IMAGES]:
         path = DATA_DIR / name
         assert path.exists() and path.stat().st_size > 0, f"{path} missing or empty"
         if name.endswith(".json"):

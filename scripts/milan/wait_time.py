@@ -30,6 +30,12 @@ Extra columns (T12, see docs/MILAN_DATA_DECISIONS.md section 7):
   - wait_least_frequent_minutes: max across routes of headway/2. Upper
     bound: a rider who needs the least frequent line.
 
+  - n_departures (T16): number of stop_times rows (all routes) of the trips
+    active on the reference day whose departure hour bucket is the hour.
+    Supply proxy, not demand. Rows exist for every (stop, hour) with at least
+    one departure; where no wait is computable (e.g. a single departure)
+    the wait columns are empty and n_lines is 0.
+
 Gaps longer than 3 hours are dropped before computing the median: those
 are almost always the last trip of the day for a route, not a real
 headway, and would otherwise inflate a low-frequency line's evening wait
@@ -121,18 +127,39 @@ route_headway as (
            median(interval_seconds) as headway_seconds
     from intervals
     group by 1, 2, 3
+),
+wait_agg as (
+    select
+        r.stop_id,
+        r.hour_bucket,
+        round(median(r.headway_seconds) / 2.0 / 60.0, 1) as median_wait_minutes,
+        count(distinct r.route_id) as n_lines,
+        round(median(r.headway_seconds) / 60.0, 2) as median_headway_minutes,
+        round(any_value(a.wait_any_line_minutes), 2) as wait_any_line_minutes,
+        round(max(r.headway_seconds) / 2.0 / 60.0, 2) as wait_least_frequent_minutes
+    from route_headway r
+    left join any_line a on r.stop_id = a.stop_id and r.hour_bucket = a.hour_bucket
+    group by 1, 2
+),
+dep_counts as (
+    select stop_id, (raw_hour % 24) as hour_bucket, count(*) as n_departures
+    from departures
+    where (raw_hour % 24) between 13 and 19
+    group by 1, 2
 )
+-- every (stop, hour) with at least one departure; wait columns are NULL
+-- (n_lines 0) where no wait is computable (e.g. a single departure)
 select
-    r.stop_id,
-    r.hour_bucket as hour,
-    round(median(r.headway_seconds) / 2.0 / 60.0, 1) as median_wait_minutes,
-    count(distinct r.route_id) as n_lines,
-    round(median(r.headway_seconds) / 60.0, 2) as median_headway_minutes,
-    round(any_value(a.wait_any_line_minutes), 2) as wait_any_line_minutes,
-    round(max(r.headway_seconds) / 2.0 / 60.0, 2) as wait_least_frequent_minutes
-from route_headway r
-left join any_line a on r.stop_id = a.stop_id and r.hour_bucket = a.hour_bucket
-group by 1, 2
+    d.stop_id,
+    d.hour_bucket as hour,
+    w.median_wait_minutes,
+    coalesce(w.n_lines, 0) as n_lines,
+    w.median_headway_minutes,
+    w.wait_any_line_minutes,
+    w.wait_least_frequent_minutes,
+    d.n_departures
+from dep_counts d
+left join wait_agg w on d.stop_id = w.stop_id and d.hour_bucket = w.hour_bucket
 order by 1, 2
 """
 
@@ -141,7 +168,7 @@ def main() -> None:
     con = duckdb.connect()
     rows = con.execute(QUERY).fetchall()
     cols = [d[0] for d in con.description]
-    print(f"{len(rows)} (stop, hour) rows with a computable wait time")
+    print(f"{len(rows)} (stop, hour) rows with at least one departure")
 
     stops = con.execute(
         f"select stop_id, stop_name, stop_lat, stop_lon "
@@ -155,7 +182,7 @@ def main() -> None:
     with open(OUTPUT_CSV, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["stop_id", "stop_name", "lat", "lon", "hour", "median_wait_minutes", "n_lines",
-                         "median_headway_minutes", "wait_any_line_minutes", "wait_least_frequent_minutes"])
+                         "median_headway_minutes", "wait_any_line_minutes", "wait_least_frequent_minutes", "n_departures"])
         n_written = 0
         for row in rows:
             row_d = dict(zip(cols, row))
@@ -166,11 +193,11 @@ def main() -> None:
             # 6 decimals ~ 0.1 m: plenty for a stop, and keeps full-precision
             # 15-decimal floats from tripping the phone-number secrets scanner.
             writer.writerow([row_d["stop_id"], name, round(lat, 6), round(lon, 6), row_d["hour"], row_d["median_wait_minutes"], row_d["n_lines"],
-                             row_d["median_headway_minutes"], row_d["wait_any_line_minutes"], row_d["wait_least_frequent_minutes"]])
+                             row_d["median_headway_minutes"], row_d["wait_any_line_minutes"], row_d["wait_least_frequent_minutes"], row_d["n_departures"]])
             n_written += 1
 
     print(f"Wrote {n_written} rows to {OUTPUT_CSV}")
-    waits = [r[2] for r in rows]
+    waits = [r[2] for r in rows if r[2] is not None]
     if waits:
         waits_sorted = sorted(waits)
         mid = len(waits_sorted) // 2

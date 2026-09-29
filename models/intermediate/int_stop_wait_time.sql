@@ -19,6 +19,11 @@
   least(H/2, sync_wait_minutes):
     wait_mixed_minutes = (1 - s) * H/2 + s * least(H/2, sync_wait_minutes)
   median_wait_minutes (H/2, purely random) is kept for comparison.
+
+  n_departures (T16): scheduled departures of all lines in the hour; the
+  seed has a row for every (stop, hour) with at least one, so the wait
+  columns (and wait_mixed_minutes, sync_share, bucket) can be NULL where
+  n_departures > 0 but no wait is computable (e.g. one departure).
 #}
 
 with base as (
@@ -33,7 +38,8 @@ with base as (
         cast(n_lines as integer) as n_lines,
         median_headway_minutes,
         wait_any_line_minutes,
-        wait_least_frequent_minutes
+        wait_least_frequent_minutes,
+        cast(n_departures as integer) as n_departures
 
     from {{ source('raw_milan', 'stop_wait_time') }}
 
@@ -71,6 +77,7 @@ select
     median_headway_minutes,
     wait_any_line_minutes,
     wait_least_frequent_minutes,
+    n_departures,
     sync_share,
     wait_mixed_minutes,
     case

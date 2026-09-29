@@ -28,15 +28,7 @@
     --accent:#1D5C63;
     --accent-tint:#E4EFEE;
     --accent-ink:#0F3438;
-    --ramp-0:#FFF3D6;
-    --ramp-1:#FFD48A;
-    --ramp-2:#FFA149;
-    --ramp-3:#F06430;
-    --ramp-4:#C93A1E;
-    --ramp-5:#7A1B0E;
     --marker-edge: rgba(26,26,26,0.35);
-    --shadow-soft: none;
-    --bg-buildings: url("__BUILDINGS_URL__");
     --font-sans: system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
     --font-mono: ui-monospace,SFMono-Regular,"SF Mono",Consolas,monospace;
   }
@@ -44,7 +36,7 @@
   *{box-sizing:border-box;}
   body{
     margin:0; background:var(--bg); color:var(--text);
-    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    font-family:var(--font-sans);
     padding: 28px 20px 48px;
   }
   .wrap{max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:22px;}
@@ -59,13 +51,13 @@
     text-wrap:balance;
   }
   .lede{color:var(--text-2); font-size:15px; line-height:1.55; max-width:65ch; margin:0;}
-  .section-head{display:flex; flex-direction:column; gap:6px; margin-bottom:14px;}
-  .section-head h2{margin:0; font-size:19px; font-weight:700;}
-  .lede-small{color:var(--text-2); font-size:13.5px; line-height:1.55; max-width:70ch; margin:0;}
+  .lede-small{color:var(--text-2); font-size:13.5px; line-height:1.55; max-width:80ch; margin:0 0 14px;}
 
   .stats{
     display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px;
   }
+  .stats[hidden]{display:none;}
+  #trees-stats{margin-bottom:14px;}
   .stat{
     background:var(--surface); border:1px solid var(--border); border-radius:10px;
     padding:14px 16px; display:flex; flex-direction:column; gap:4px;
@@ -78,11 +70,12 @@
 
   .panel{
     background:var(--surface); border:1px solid var(--border); border-radius:14px;
-    padding:18px; box-shadow:var(--shadow-soft);
+    padding:18px;
   }
 
   .controls{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:14px;}
   .controls .label{font-size:12.5px; color:var(--text-2); font-weight:500;}
+  .controls .spacer{margin-left:auto;}
   .segmented{display:flex; flex-wrap:wrap; gap:4px; background:var(--surface-2); padding:4px; border-radius:9px;}
   .segmented button{
     font-family:var(--font-mono); font-size:12.5px; font-weight:500;
@@ -90,52 +83,28 @@
     border-radius:6px; cursor:pointer;
   }
   .segmented button:hover{color:var(--text);}
-  .segmented button.active{background:var(--accent); color:var(--accent-tint); font-weight:600;}
+  .segmented button.active, .segmented button[aria-pressed="true"]{background:var(--accent); color:var(--accent-tint); font-weight:600;}
   .segmented button:focus-visible{outline:2px solid var(--accent); outline-offset:1px;}
+  .segmented[hidden], .controls .label[hidden]{display:none;}
 
   .map-row{display:flex; gap:16px; flex-wrap:wrap;}
   .map-holder{
-    flex:1 1 560px; min-width:280px; position:relative; border-radius:10px; overflow:hidden;
+    flex:1 1 560px; min-width:280px; height:520px; position:relative; border-radius:10px; overflow:hidden;
     background-color:var(--surface-2);
-    background-image:var(--bg-buildings);
-    background-size:100% 100%; background-position:center; background-repeat:no-repeat;
   }
-  svg#map{width:100%; height:auto; display:block;}
-  svg#map circle, svg#map rect.station-mark, svg#map rect:not(.station-mark){cursor:pointer; transition:opacity .12s ease;}
-  svg#map .road{fill:none; stroke:var(--border); stroke-width:1.1; stroke-linecap:round;}
-  svg#map .station{cursor:pointer;}
-  svg#map .station-mark{fill:var(--surface); stroke:var(--accent); stroke-width:1.6;}
-  canvas#heatmap{position:absolute; inset:0; width:100%; height:100%; display:block;}
-  svg#waitmap{width:100%; height:auto; display:block;}
-  svg#waitmap circle{cursor:pointer; transition:opacity .12s ease;}
-
-  .stations-toggle{display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--text-2); margin-left:auto; cursor:pointer;}
-  .stations-toggle input{accent-color:var(--accent);}
-  .station-dot{width:10px; height:10px; flex:0 0 auto; background:var(--surface); border:2px solid var(--accent); transform:rotate(45deg); display:inline-block;}
-  .grey-dot{width:10px; height:10px; flex:0 0 auto; border-radius:50%; background:#9AA0A3; display:inline-block;}
-
-  .view-panel{display:flex; flex-direction:column; gap:14px;}
-  #deck-holder, #trees-holder{height:520px; position:relative;}
-  #deck-container, #trees-container{position:absolute; inset:0;}
-  @media (max-width:640px){ #deck-holder, #trees-holder{height:380px;} }
+  #deck-container{position:absolute; inset:0;}
   .deck-status{
     position:absolute; left:12px; top:12px; z-index:5; background:var(--surface); border:1px solid var(--border);
     border-radius:8px; padding:7px 11px; font-size:12.5px; color:var(--text-2); max-width:calc(100% - 24px);
   }
   .deck-status[hidden]{display:none;}
-  .deck-status.error{border-color:#C93A1E; color:var(--text); background:#FFF3EE;}
-  .level-key{display:flex; flex-direction:column; gap:4px; margin-top:8px;}
-  .level-key div{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--text-2);}
-  .level-key i{width:12px; height:12px; flex:0 0 auto; border-radius:3px; border:1px solid var(--marker-edge); display:inline-block;}
-  .tree-key{width:12px; height:12px; flex:0 0 auto; border-radius:50%; display:inline-block; border:1px solid var(--marker-edge);}
-  .tree-key.shades{border:2px solid #1A1A1A;}
-  .stop-key{width:12px; height:12px; flex:0 0 auto; border-radius:50%; display:inline-block; border:1.5px solid #1A1A1A; background:#FFFFFF;}
-  .stop-key.shaded{background:#1D5C63;}
+  .deck-status.error{border-color:#BD0026; color:var(--text); background:#FFF3EE;}
 
-  .legend{
-    flex:0 0 200px; display:flex; flex-direction:column; gap:14px;
-  }
+  .legend{flex:0 0 210px; display:flex; flex-direction:column; gap:14px;}
+  .legend[hidden], .legend > div[hidden]{display:none;}
   .legend h3{margin:0 0 8px; font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-2); font-weight:600;}
+  #legend-body{display:flex; flex-direction:column; gap:14px;}
+  #legend-body h3{margin:0 0 8px; font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-2); font-weight:600;}
   #sun-compass{display:block; margin:0 auto 6px;}
   #sun-compass .ring{fill:none; stroke:var(--border);}
   #sun-compass .path{fill:none; stroke:var(--marker-edge); stroke-width:1; stroke-dasharray:2 2;}
@@ -145,33 +114,63 @@
   .ramp-strip{display:flex; height:14px; border-radius:4px; overflow:hidden; border:1px solid var(--border);}
   .ramp-strip span{flex:1;}
   .ramp-labels{display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:11px; color:var(--text-3);}
-  .legend-note{font-size:12.5px; color:var(--text-2); line-height:1.5;}
-  .shelter-key{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-2);}
-  .unstable-key{width:12px; height:12px; flex:0 0 auto; border-radius:50%; border:1.2px dashed var(--text); opacity:.7; display:inline-block;}
-  svg#map circle.unstable-ring{fill:none; pointer-events:none; cursor:default;}
+  .legend-note{font-size:12.5px; color:var(--text-2); line-height:1.5; margin:6px 0 0;}
+  .key{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-2); margin-top:6px; line-height:1.35;}
+  .key:first-of-type{margin-top:0;}
+  .key .mk{flex:0 0 18px; display:flex; justify-content:center; align-items:center;}
+  .key .mk i{display:block; border-radius:50%; box-sizing:border-box;}
+  .key .mk i.sq{border-radius:3px;}
+  .key .mk i.hollow{background:transparent; border:1.6px solid #5A6064;}
+  .key .mk i.grey{background:#9AA0A3; border:1px solid rgba(26,26,26,.35);}
+  .key .mk i.ring{background:transparent; border:1.4px dashed #1A1A1A;}
+  .key .mk i.station{background:#fff; border:2px solid var(--accent);}
+  .key .mk i.shade{background:rgba(24,32,72,.5); border-radius:2px;}
+  .key .mk i.pick{background:transparent; border:2.5px solid #1A1A1A; box-shadow:0 0 0 1.5px #fff;}
+  .key.classes{gap:8px;}
+  .key .swatch{flex:0 0 18px; height:12px; border-radius:3px; border:1px solid var(--marker-edge);}
+  .toggle-line{display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--text-2); margin-top:6px; cursor:pointer;}
+  .toggle-line input{accent-color:var(--accent);}
+  .size-keys{display:flex; align-items:flex-end; gap:14px; margin-top:2px;}
+  .size-keys div{display:flex; flex-direction:column; align-items:center; gap:4px; font-family:var(--font-mono); font-size:11px; color:var(--text-3);}
+  .size-keys i{display:block; border-radius:50%; background:#FD8D3C; border:1px solid rgba(26,26,26,.5);}
+
+  .priority{margin-top:16px; border-top:1px solid var(--border); padding-top:14px;}
+  .priority[hidden]{display:none;}
+  .priority h2{margin:0 0 4px; font-size:16px; font-weight:700;}
+  .priority ol{list-style:none; margin:10px 0 0; padding:0; columns:2; column-gap:16px;}
+  .priority li{break-inside:avoid; margin:0 0 6px;}
+  .priority button{
+    display:flex; align-items:baseline; gap:8px; width:100%; text-align:left; cursor:pointer;
+    font:inherit; font-size:13px; color:var(--text); background:var(--surface); padding:7px 10px;
+    border:1px solid var(--border); border-radius:8px;
+  }
+  .priority button:hover{background:var(--surface-2);}
+  .priority button:focus-visible{outline:2px solid var(--accent); outline-offset:1px;}
+  .priority button[aria-current="true"]{border-color:var(--accent); background:var(--accent-tint);}
+  .priority .rank{font-family:var(--font-mono); font-size:12px; color:var(--text-3); flex:0 0 22px;}
+  .priority .nm{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .priority .val{font-family:var(--font-mono); font-size:12.5px; font-weight:600; flex:0 0 auto;}
+  @media (max-width:800px){ .priority ol{columns:1;} }
+
   .method-note{font-size:12.5px; color:var(--text-2); line-height:1.55; max-width:80ch; margin:0 auto; text-align:left;}
   .method-note a{color:var(--accent);}
-  .shelter-square{width:10px; height:10px; background:var(--ramp-3); border:1px solid var(--marker-edge); transform:rotate(45deg); flex:0 0 auto;}
 
-  #tooltip{
-    position:fixed; pointer-events:none; z-index:50; background:var(--text); color:var(--bg);
-    font-family:var(--font-mono); font-size:12px; padding:8px 10px; border-radius:7px;
-    line-height:1.5; box-shadow:var(--shadow-soft); max-width:240px; opacity:0; transform:translateY(4px);
-    transition:opacity .1s ease;
-  }
-  #tooltip.show{opacity:1;}
-  #tooltip b{display:block; font-family:var(--font-sans); font-size:12.5px; margin-bottom:2px;}
-
-  .wrap[hidden], .segmented[hidden], .view-panel[hidden]{display:none;}
+  .wrap[hidden]{display:none;}
   #load-status{max-width:640px; margin:12vh auto 0; padding:16px 18px; border:1px solid var(--border);
     border-radius:10px; font-size:15px; line-height:1.55; color:var(--text-2);}
-  #load-status.error{border-color:#C93A1E; color:var(--text); background:#FFF3EE;}
+  #load-status.error{border-color:#BD0026; color:var(--text); background:#FFF3EE;}
   #load-status code{font-family:var(--font-mono); font-size:13px;}
-  footer{font-size:12px; color:var(--text-3); text-align:center; padding-top:6px;}
+  footer{font-size:12px; color:var(--text-3); text-align:center; padding-top:6px; line-height:1.6;}
+  footer a{color:var(--text-2);}
 
   @media (max-width:640px){
+    body{padding:20px 12px 40px;}
+    .panel{padding:12px;}
+    .map-holder{height:380px; flex:0 0 auto;}
     .map-row{flex-direction:column;}
     .legend{flex:1 1 auto;}
+    .controls .spacer{margin-left:0;}
+    .segmented button{padding:6px 9px;}
   }
 </style>
 </head>
@@ -186,136 +185,46 @@
 
   <div class="stats" id="stats"></div>
 
+
   <div class="panel">
     <div class="controls">
       <span class="label">View</span>
       <div class="segmented" id="view-buttons"></div>
-      <span class="label" id="hour-label" style="margin-left:auto">Hour</span>
+      <span class="label spacer" id="hour-label">Hour</span>
       <div class="segmented" id="hour-buttons"></div>
+      <span class="label">Layer</span>
+      <div class="segmented"><button type="button" id="heat-toggle" aria-pressed="false">Heatmap</button></div>
     </div>
 
-    <div class="view-panel" id="view-panel-main">
-      <p class="lede-small">Each column is a bus/tram stop: its height is the estimated wait there (central estimate, capped at 25 min), its color is how exposed to direct sun the stop is in the selected hour(s), from full building shadow to full sun. Hover a column for the wait range and the stop's exposure decile. Stops with no service in the selected hour(s) show as a flat grey point instead of a column.</p>
-      <div class="map-row">
-        <div class="map-holder" id="deck-holder" style="background-image:none;">
-          <div id="deck-container"></div>
+    <p class="lede-small" id="view-desc"></p>
+    <div class="stats" id="trees-stats" hidden></div>
+
+    <div class="map-row">
+      <div class="map-holder" id="map-holder">
+        <div id="deck-container"></div>
+        <div class="deck-status" id="map-status" role="status" aria-live="polite" hidden></div>
+      </div>
+      <div class="legend">
+        <div id="compass-box">
+          <h3 id="sun-title">Sun position</h3>
+          <svg id="sun-compass" viewBox="0 0 140 140" width="140" height="140" role="img" aria-label="Sun position"></svg>
+          <p class="legend-note" id="sun-note"></p>
         </div>
-        <div class="legend">
-          <div>
-            <h3>Column height</h3>
-            <p class="legend-note">Estimated wait (mixed model, central estimate), capped at 25 min; the tooltip also shows the low&ndash;high range. Flat grey points mark stops with no service in the selected hour(s).</p>
-          </div>
-          <div>
-            <h3>Column color</h3>
-            <div class="ramp-strip" id="main-ramp-strip"></div>
-            <div class="ramp-labels"><span>Shadow</span><span>Sun+shelter</span><span>Full sun</span></div>
-            <div class="level-key" data-level-key></div>
-            <p class="legend-note">Exposure score: 0 = building shadow, <span data-param="tree"></span> = shadow of a tree crown (<span data-param="tree_pct"></span> of the sun gets through), <span data-param="shelter"></span> = direct sun with a shelter present, 1 = full sun, no shelter. Tree shade sits so close to 0 that its color is almost the building-shadow one: the tooltip tells them apart. For the "Average" hour, the score is averaged across 13:00&ndash;19:00.</p>
-          </div>
-          <div class="legend-note"><span class="grey-dot"></span> no service in this hour &mdash; shown at ground level, no column</div>
-        </div>
+        <div id="legend-body"></div>
       </div>
     </div>
 
-    <div class="view-panel" id="view-panel-exposure" hidden>
-      <div class="controls">
-        <span class="label">Display</span>
-        <div class="segmented" id="display-buttons"></div>
-        <label class="stations-toggle"><input type="checkbox" id="stations-toggle" checked> Show weather stations</label>
-      </div>
-      <div class="map-row">
-        <div class="map-holder" id="map-holder">
-          <svg id="map" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg>
-          <canvas id="heatmap" hidden></canvas>
-        </div>
-        <div class="legend">
-          <div>
-            <h3 id="sun-title">Sun position</h3>
-            <svg id="sun-compass" viewBox="0 0 140 140" width="140" height="140"></svg>
-            <p class="legend-note" id="sun-note"></p>
-          </div>
-          <div>
-            <h3 id="legend-title">Sun-exposure score</h3>
-            <div class="ramp-strip" id="ramp-strip"></div>
-            <div class="ramp-labels" id="exposure-ramp-labels"><span>0</span><span>7</span></div>
-            <div class="level-key" data-level-key></div>
-            <p class="legend-note" id="legend-note"></p>
-          </div>
-          <div>
-            <h3>Shelter</h3>
-            <div class="shelter-key"><span class="shelter-square"></span> square = stop has a shelter (OSM); circle = it doesn't</div>
-          </div>
-          <div>
-            <h3>Shelter-dependent class</h3>
-            <div class="shelter-key"><span class="unstable-key"></span> dashed ring = the stop's exposure class (low/medium/high) changes with the shelter factor, which is an uncalibrated assumption (<span data-param="shelter"></span>). Read these stops with caution.</div>
-            <label class="stations-toggle" style="margin-left:0; margin-top:6px"><input type="checkbox" id="unstable-toggle" checked> Mark them</label>
-          </div>
-          <div>
-            <h3>Weather source</h3>
-            <div class="shelter-key"><span class="station-dot"></span> ARPA Lombardia station used for the critical-hours analysis &mdash; hover for its own % of readings &gt;30&deg;C</div>
-          </div>
-          <div>
-            <h3>Backdrop</h3>
-            <p class="legend-note">Building footprints from the same Copernicus Urban Atlas raster used for the shadow calculation &mdash; darker = taller. Not a street map (tile servers aren't reachable from a published Claude artifact); this is the project's own data, not a decoration.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="view-panel" id="view-panel-wait" hidden>
-      <div class="section-head">
-        <h2>Estimated wait by stop</h2>
-        <p class="lede-small">Estimated wait per stop, per hour, from a mixed model: some riders arrive at random (wait = half the headway) and a share of them time their arrival to the timetable, up to <span data-param="sync_pct"></span> of riders when the headway is <span data-param="sync_full"></span> min or more. Hover a stop for the low&ndash;high range (all lines combined vs. the least frequent line). Same day as the exposure map, Sunday June 28, 2026 (ATM GTFS feed v417), 13:00&ndash;19:00 CEST. A separate dataset from the exposure map (4,246 GTFS stops vs. 2,931 OSM stops) &mdash; the two are joined in the dbt layer (mart_stop_heat_wait_hourly), not in this map, so each is shown on its own projection here.</p>
-      </div>
-      <div class="map-row">
-        <div class="map-holder" id="wait-map-holder" style="background-image:none;">
-          <svg id="waitmap" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg>
-        </div>
-        <div class="legend">
-          <div>
-            <h3 id="wait-legend-title">Estimated wait (min)</h3>
-            <div class="ramp-strip" id="wait-ramp-strip"></div>
-            <div class="ramp-labels"><span>0</span><span>25+</span></div>
-            <p class="legend-note" id="wait-legend-note">Capped at 25 min for color purposes &mdash; a handful of low-frequency stops wait much longer, but letting them set the scale would wash out the difference between everyone else.</p>
-          </div>
-          <div class="legend-note">4,246 GTFS stops (metro, tram, bus) &mdash; a larger, differently-sourced set than the 2,931 OSM stops in the exposure map.</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="view-panel" id="view-panel-trees" hidden>
-      <p class="lede-small">Every municipal tree in the Comune di Milano census (ds2484, 31 March 2025) that has a plausible height and crown, drawn as a dot the size of its crown and colored by height. Trees whose crown shades at least one stop in at least one hour of 13:00&ndash;19:00 have a dark outline. Stops sit on top; those with tree-crown shade in at least one hour are filled teal. Zoom in to hover a tree. Only municipal trees are in the census: private trees are missing, so tree shade is underestimated.</p>
-      <div class="stats" id="trees-stats"></div>
-      <div class="map-row">
-        <div class="map-holder" id="trees-holder" style="background-image:none;">
-          <div id="trees-container"></div>
-          <div class="deck-status" id="trees-status" role="status" aria-live="polite" hidden></div>
-        </div>
-        <div class="legend">
-          <div>
-            <h3>Tree height</h3>
-            <div class="ramp-strip" id="tree-ramp-strip"></div>
-            <div class="ramp-labels"><span>1 m</span><span id="tree-cap-label"></span></div>
-            <p class="legend-note">Dot radius = half the crown diameter, in meters on the ground.</p>
-          </div>
-          <div>
-            <h3>Highlights</h3>
-            <div class="shelter-key"><span class="tree-key shades" style="background:#31A354"></span> tree whose crown shades a stop</div>
-            <div class="shelter-key" style="margin-top:6px"><span class="stop-key shaded"></span> stop with tree-crown shade</div>
-            <div class="shelter-key" style="margin-top:6px"><span class="stop-key"></span> stop without</div>
-          </div>
-          <div class="legend-note" id="trees-partial-note" hidden></div>
-        </div>
-      </div>
-    </div>
+    <section class="priority" id="priority" aria-labelledby="priority-title">
+      <h2 id="priority-title"></h2>
+      <p class="lede-small" style="margin:0">The 20 stops with the most minutes of waiting in the sun. Click one to centre the map on it.</p>
+      <ol id="priority-list"></ol>
+    </section>
   </div>
 
   <p class="method-note"><b>Method.</b> Waits use a mixed model: random arrivals plus a share of riders synchronised to the timetable (a parameter, up to <span data-param="sync_pct"></span> for headways of <span data-param="sync_full"></span> min or more), so each stop has a central estimate and a low&ndash;high range. The shelter factor (<span data-param="shelter"></span>) is an assumption, not calibrated: changing it between <span data-param="shelter_min"></span> and <span data-param="shelter_max"></span> moves a large share of stops to another exposure class, which the dashed rings flag. Trees come from the Comune di Milano census (ds2484, 31 March 2025) and include municipal trees only: private trees, and trees in parks or courtyards outside the census, are not counted, so tree shade is underestimated. A crown is modelled as a cylinder (radius = half the crown diameter) and lets <span data-param="tree_pct"></span> of the sun through (<span data-param="tree"></span> in the score; Konarska et al. 2014, 1.3&ndash;5.3%). Details and code: <a href="https://github.com/N-iv-a/transit-heat-exposure-dbt">github.com/N-iv-a/transit-heat-exposure-dbt</a>.</p>
 
-  <footer>Data: ATM Milano GTFS &middot; Comune di Milano tree census (ds2484) &middot; Copernicus Urban Atlas Building Height 2012 &middot; OpenStreetMap &middot; ARPA Lombardia. Built with AI assistance (Claude); modeling choices are the project owner's.</footer>
+  <footer>Data: Comune di Milano Open Data, licensed CC BY &mdash; <a href="https://dati.comune.milano.it/dataset/ds929-orari-del-trasporto-pubblico-locale-nel-comune-di-milano-in-formato-gtfs">ATM/AMAT GTFS timetable (DS929)</a> and <a href="https://dati.comune.milano.it/dataset/ds2484_infogeo_alberi_localizzazione">tree census (ds2484, 31 March 2025)</a> &middot; Building heights: Urban Atlas Building Height 2012, &copy; European Union, Copernicus Land Monitoring Service, European Environment Agency (EEA) &middot; Stops and shelters: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> (ODbL) &middot; Temperatures: <a href="https://www.dati.lombardia.it/Ambiente/Dati-sensori-meteo/647i-nhxk">ARPA Lombardia, dati.lombardia.it</a>. Built with AI assistance (Claude); modeling choices are the project owner's.</footer>
 </div>
-
-<div id="tooltip"></div>
 
 __DECKGL_TAG__
 <script>
@@ -326,6 +235,7 @@ const INLINE = __INLINE_DATA__;
 const DATA_FILES = {exposure:'data/exposure.json', wait:'data/wait_time.json', main:'data/main.json'};
 const TREES_URL = 'data/trees.json'; // fetched on first opening of the Trees view (site build)
 const BUILDINGS_DECK_URL = "__BUILDINGS_DECK_URL__";
+const SHADOW_URLS = __SHADOW_URLS__; // {"13": url, ... "19": url}; empty in a single file that left them out
 
 async function loadData(){
   if (INLINE) return INLINE;
@@ -360,14 +270,15 @@ loadData().then(payload => {
 }).catch(err => { console.error(err); showLoadError(err); });
 
 function startApp(payload){
-const DATA = payload.exposure;
-const ROADS = [];
-const WAIT_DATA = payload.wait;
-const MAIN_DATA = payload.main;
+const MAIN = payload.main;          // OSM stops with exposure, wait and departures per hour
+const WAIT = payload.wait;          // GTFS stops with wait and departures per hour
+const SHELTERED = new Set(payload.exposure); // ids of OSM stops with a shelter
+const BOUNDS = MAIN.bounds;         // [lonMin, latMin, lonMax, latMax]: backdrop and shadow images use them too
+const HOURS = [13,14,15,16,17,18,19];
 
 // Model parameters come from dbt_project.yml (prepare_main_data.py -> main.json
 // `params`); the page text never hard-codes them.
-const P = MAIN_DATA.params;
+const P = MAIN.params;
 const fmtNum = v => String(v);
 const pct = v => Math.round(v*100) + '%';
 const PARAM_TEXT = {
@@ -381,6 +292,7 @@ const PARAM_TEXT = {
 };
 document.querySelectorAll('[data-param]').forEach(el=>{ el.textContent = PARAM_TEXT[el.dataset.param]; });
 const isTreeShade = t => t > 0 && Math.abs(t - P.tree_transmissivity) < 1e-6;
+const nfmt = n => n.toLocaleString('en-US');
 
 const WEATHER_STATIONS = [
   {id:2001, name:'Milano Lambrate',      lo:9.2575154,  la:45.49677982, pctOver30:23.9},
@@ -391,738 +303,324 @@ const WEATHER_STATIONS = [
   {id:8162, name:'Milano v.Feltre',      lo:9.24873853, la:45.49163461, pctOver30:22.6},
 ];
 
-const RAMP =['var(--ramp-0)','var(--ramp-1)','var(--ramp-2)','var(--ramp-3)','var(--ramp-4)','var(--ramp-5)'];
-const RAMP_HEX_LIGHT = ['#FFF3D6','#FFD48A','#FFA149','#F06430','#C93A1E','#7A1B0E'];
-
-// Wait-time ramp: light blue -> violet, per the project owner's own request.
-// Still a magnitude scale (0..25+ min), so lightness still runs monotonic
-// light-to-dark even while the hue sweeps -- not a diverging pair, there's
-// no meaningful "zero point" to diverge around.
-const WAIT_RAMP_LIGHT = ['#E3EEFA','#A9C3E8','#7E9CD6','#8A7AC4','#6B4E9E','#4A2F73'];
-const WAIT_CAP_MIN = 25;
-
-function waitRampColor(t){
-  const stops = WAIT_RAMP_LIGHT;
-  t = Math.max(0, Math.min(1, t));
-  const scaled = t * (stops.length - 1);
-  const i = Math.floor(scaled);
-  const frac = scaled - i;
-  if (i >= stops.length - 1) return stops[stops.length-1];
-  const c0 = hexToRgb(stops[i]), c1 = hexToRgb(stops[i+1]);
-  return rgbToHex(lerp(c0[0],c1[0],frac), lerp(c0[1],c1[1],frac), lerp(c0[2],c1[2],frac));
-}
-
+// ---- small helpers ----
 function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-  }[c]));
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 function lerp(a,b,t){ return Math.round(a + (b-a)*t); }
 function hexToRgb(h){ h=h.replace('#',''); return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]; }
 function rgbToHex(r,g,b){ return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join(''); }
-function rampColor(t){
-  const stops = RAMP_HEX_LIGHT;
+function rampRGB(stops, t){
   t = Math.max(0, Math.min(1, t));
-  const scaled = t * (stops.length - 1);
-  const i = Math.floor(scaled);
-  const frac = scaled - i;
-  if (i >= stops.length - 1) return stops[stops.length-1];
-  const c0 = hexToRgb(stops[i]), c1 = hexToRgb(stops[i+1]);
-  return rgbToHex(lerp(c0[0],c1[0],frac), lerp(c0[1],c1[1],frac), lerp(c0[2],c1[2],frac));
+  const scaled = t * (stops.length - 1), i = Math.min(stops.length - 2, Math.floor(scaled)), f = scaled - i;
+  const a = hexToRgb(stops[i]), b = hexToRgb(stops[i+1]);
+  return [lerp(a[0],b[0],f), lerp(a[1],b[1],f), lerp(a[2],b[2],f)];
 }
-
-// ---- projection ----
-const lons = DATA.map(d=>d.lo), lats = DATA.map(d=>d.la);
-const lonMin = Math.min(...lons), lonMax = Math.max(...lons);
-const latMin = Math.min(...lats), latMax = Math.max(...lats);
-const latMid = (latMin+latMax)/2;
-const cosLat = Math.cos(latMid*Math.PI/180);
-const wDeg = (lonMax-lonMin)*cosLat, hDeg = (latMax-latMin);
-const PAD = 0.05;
-const VB_W = 1000, VB_H = Math.round(VB_W * (hDeg/wDeg));
-function project(lon, lat){
-  const x = ((lon-lonMin)*cosLat/wDeg) * VB_W*(1-2*PAD) + VB_W*PAD;
-  const y = ((latMax-lat)/hDeg) * VB_H*(1-2*PAD) + VB_H*PAD;
-  return [x,y];
+const rampHex = (stops, t) => rgbToHex(...rampRGB(stops, t));
+function mean(arr){
+  const v = arr.filter(x => x !== null && x !== undefined);
+  return v.length ? v.reduce((a,b)=>a+b,0) / v.length : null;
 }
-
-const svg = document.getElementById('map');
-svg.setAttribute('viewBox', `0 0 ${VB_W} ${VB_H}`);
-const mapHolder = document.getElementById('map-holder');
-const heatCanvas = document.getElementById('heatmap');
-
-let mode = 'avg'; // 'avg' | 13..19
-let display = 'points';  // 'points' | 'heatmap'
-let showStations = true;
-let showUnstable = true;
-
-function weightFor(rec){
-  // rec.e is the weighted exposure score summed over 13..19 (0-7); rec.h
-  // holds the per-hour weighted score already (0 shadow, 0.5 sun+shelter,
-  // 1 full sun) -- both continuous, not the old exposed/not-exposed flag.
-  if (mode === 'avg') return rec.e/7;
-  return rec.h[mode-13];
+// value of an hourly series at the selected hour: 13..19, or the mean over the hours that have data
+const seriesAt = (arr, hour) => hour === 'avg' ? mean(arr) : arr[hour-13];
+const hourLabel = hour => hour === 'avg' ? 'Average, 13:00–19:00' : `${hour}:00`;
+function quantile(sorted, q){
+  const pos = (sorted.length - 1) * q, lo = Math.floor(pos), hi = Math.ceil(pos);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
 }
-function colorFor(rec){
-  return rampColor(weightFor(rec));
+const fmtMin = v => v.toFixed(1);
+
+// ---- colour scales (all sequential and colour-blind safe: no red/green pair) ----
+// Sun-exposed wait: 5 quantile classes, ColorBrewer YlOrRd-5.
+const CLASS_COLORS = ['#FFFFB2','#FECC5C','#FD8D3C','#F03B20','#BD0026'];
+// Exposure score: continuous YlOrRd (9 steps), 0 = building shadow, 1 = full sun.
+const EXPOSURE_RAMP = ['#FFFFCC','#FFEDA0','#FED976','#FEB24C','#FD8D3C','#FC4E2A','#E31A1C','#BD0026','#800026'];
+// Wait: light blue -> violet, lightness still runs light to dark; capped at 25 min.
+const WAIT_RAMP = ['#E3EEFA','#A9C3E8','#7E9CD6','#8A7AC4','#6B4E9E','#4A2F73'];
+const WAIT_CAP_MIN = 25;
+const TREE_HEIGHT_CAP = 30; // m, color scale saturates here
+const TREE_RAMP = ['#E5F5B0','#A6DB8A','#5BB76A','#238A4A','#0B5A32','#053A20'];
+const GREY_RGB = [154, 160, 163];
+const STROKE = [26, 26, 26, 150];
+const NO_DEPTH = {parameters: {depthTest: false}};
+const rgba = (hex, a=255) => [...hexToRgb(hex), a];
+
+// Quantile classes of sun-exposed wait minutes, from every (stop, hour) value in the data.
+// The same breaks are used for every hour and the average, so hours stay comparable.
+const EXPOSED_SORTED = MAIN.stops.flatMap(d => d.x.filter(v => v !== null)).sort((a,b)=>a-b);
+const BREAKS = [0.2,0.4,0.6,0.8].map(q => quantile(EXPOSED_SORTED, q));
+function classOf(v){ let k = 0; while (k < 4 && v >= BREAKS[k]) k++; return k; }
+function classLabels(){
+  const b = BREAKS.map(fmtMin);
+  return [`0–${b[0]}`, `${b[0]}–${b[1]}`, `${b[1]}–${b[2]}`, `${b[2]}–${b[3]}`, `${b[3]}+`];
 }
-
-function renderRoads(g){
-  ROADS.forEach(way=>{
-    const d = way.map((pt,i)=>{
-      const [x,y] = project(pt[0], pt[1]);
-      return (i===0?'M':'L') + x.toFixed(1) + ',' + y.toFixed(1);
-    }).join(' ');
-    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
-    p.setAttribute('d', d);
-    p.setAttribute('class', 'road');
-    g.appendChild(p);
-  });
-}
-
-function renderStations(g){
-  if (!showStations) return;
-  WEATHER_STATIONS.forEach(st=>{
-    const [x,y] = project(st.lo, st.la);
-    const el = document.createElementNS('http://www.w3.org/2000/svg','rect');
-    const s = 7;
-    el.setAttribute('x', (x-s/2).toFixed(2));
-    el.setAttribute('y', (y-s/2).toFixed(2));
-    el.setAttribute('width', s);
-    el.setAttribute('height', s);
-    el.setAttribute('transform', `rotate(45 ${x.toFixed(2)} ${y.toFixed(2)})`);
-    el.setAttribute('class', 'station-mark');
-    el.dataset.station = st.id;
-    g.appendChild(el);
-  });
-}
-
-function render(){
-  svg.innerHTML = '';
-  const roadsG = document.createElementNS('http://www.w3.org/2000/svg','g');
-  roadsG.setAttribute('id','roads-layer');
-  renderRoads(roadsG);
-  svg.appendChild(roadsG);
-
-  // Shelter is encoded by SHAPE (square = has shelter, circle = doesn't),
-  // never by an outline alone: a stroke-only encoding disappears whenever the
-  // fill color happens to sit close to the background (e.g. the palest ramp
-  // step in dark mode), which is exactly the "empty ring" bug this replaced.
-  // Every marker also gets a low-contrast constant-color edge so it stays a
-  // legible shape even when its fill value is at the low end of the ramp.
-  const pointsG = document.createElementNS('http://www.w3.org/2000/svg','g');
-  const frag = document.createDocumentFragment();
-  DATA.forEach(rec=>{
-    const [x,y] = project(rec.lo, rec.la);
-    const fill = colorFor(rec);
-    let el;
-    if (rec.sh){
-      const s = 3.6;
-      el = document.createElementNS('http://www.w3.org/2000/svg','rect');
-      el.setAttribute('x', (x-s/2).toFixed(2));
-      el.setAttribute('y', (y-s/2).toFixed(2));
-      el.setAttribute('width', s);
-      el.setAttribute('height', s);
-      el.setAttribute('transform', `rotate(45 ${x.toFixed(2)} ${y.toFixed(2)})`);
-    } else {
-      el = document.createElementNS('http://www.w3.org/2000/svg','circle');
-      el.setAttribute('cx', x.toFixed(2));
-      el.setAttribute('cy', y.toFixed(2));
-      el.setAttribute('r', 2.4);
-    }
-    el.setAttribute('fill', fill);
-    el.setAttribute('fill-opacity', 0.92);
-    el.setAttribute('stroke', 'var(--marker-edge)');
-    el.setAttribute('stroke-width', 0.5);
-    el.dataset.id = rec.id;
-    frag.appendChild(el);
-  });
-  pointsG.appendChild(frag);
-  svg.appendChild(pointsG);
-
-  if (showUnstable){
-    const ringsG = document.createElementNS('http://www.w3.org/2000/svg','g');
-    ringsG.setAttribute('id','unstable-layer');
-    const rf = document.createDocumentFragment();
-    DATA.forEach(rec=>{
-      if (rec.st) return;
-      const [x,y] = project(rec.lo, rec.la);
-      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
-      c.setAttribute('cx', x.toFixed(2)); c.setAttribute('cy', y.toFixed(2)); c.setAttribute('r', 4.6);
-      c.setAttribute('class','unstable-ring');
-      c.setAttribute('stroke','#1A1A1A'); c.setAttribute('stroke-opacity','0.6');
-      c.setAttribute('stroke-width','0.7'); c.setAttribute('stroke-dasharray','1.4 1.2');
-      rf.appendChild(c);
-    });
-    ringsG.appendChild(rf);
-    svg.appendChild(ringsG);
-  }
-
-  const stationsG = document.createElementNS('http://www.w3.org/2000/svg','g');
-  stationsG.setAttribute('class','station');
-  renderStations(stationsG);
-  svg.appendChild(stationsG);
-}
-
-// ---- heatmap (canvas) ----
-// Grid-based LOCAL AVERAGE, not summed intensity: a cluster of many low-exposure
-// stops must not paint the same as a cluster of many high-exposure ones just
-// because there are more of them. Each grid cell tracks a weighted sum and a
-// separate density count; the displayed value is their ratio, and a cell's
-// opacity fades with how little data actually supports it (no stops nearby).
-const GRID_W = 160;
-const GRID_H = Math.max(1, Math.round(GRID_W * (VB_H/VB_W)));
-const KERNEL_CELLS = 3.2; // smoothing radius, in grid cells
-
-function renderHeatmapCanvas(crisp){
-  const rect = mapHolder.getBoundingClientRect();
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const outW = Math.max(1, Math.round(rect.width * dpr));
-  const outH = Math.max(1, Math.round(outW * (VB_H/VB_W)));
-  heatCanvas.width = outW;
-  heatCanvas.height = outH;
-
-  // Crisp mode: a coarser grid, each point counted only in its own cell (no
-  // gaussian spread), no smoothing on upscale -- a block mosaic instead of a
-  // blurred blob. Same underlying weighted-average-per-cell math either way,
-  // genuinely different rendering, not a cosmetic tweak of the same picture.
-  const gridW = crisp ? 46 : GRID_W;
-  const gridH = Math.max(1, Math.round(gridW * (VB_H/VB_W)));
-  const cellSize = VB_W / gridW;
-  const weightSum = new Float32Array(gridW*gridH);
-  const countSum  = new Float32Array(gridW*gridH);
-  const R = crisp ? 0 : Math.ceil(KERNEL_CELLS*2.2);
-  const sigma2 = KERNEL_CELLS*KERNEL_CELLS;
-
-  DATA.forEach(rec=>{
-    const wgt = weightFor(rec);
-    const [x,y] = project(rec.lo, rec.la);
-    const gx = x/cellSize, gy = y/cellSize;
-    const cx = Math.round(gx), cy = Math.round(gy);
-    for (let dy=-R; dy<=R; dy++){
-      const yy = cy+dy;
-      if (yy<0 || yy>=gridH) continue;
-      for (let dx=-R; dx<=R; dx++){
-        const xx = cx+dx;
-        if (xx<0 || xx>=gridW) continue;
-        const idx = yy*gridW+xx;
-        if (crisp){
-          weightSum[idx] += wgt;
-          countSum[idx]  += 1;
-        } else {
-          const ddx = xx-gx, ddy = yy-gy;
-          const k = Math.exp(-(ddx*ddx+ddy*ddy)/(2*sigma2));
-          if (k < 0.01) continue;
-          weightSum[idx] += k*wgt;
-          countSum[idx]  += k;
-        }
-      }
-    }
-  });
-
-  // density that counts as "fully supported" for opacity purposes
-  const DENSITY_FULL = crisp ? 1.2 : 0.55;
-  const grid = document.createElement('canvas');
-  grid.width = gridW; grid.height = gridH;
-  const gctx = grid.getContext('2d');
-  const img = gctx.createImageData(gridW, gridH);
-  for (let i=0;i<gridW*gridH;i++){
-    const count = countSum[i];
-    const avg = count > 0.02 ? weightSum[i]/count : 0;
-    const alpha = Math.max(0, Math.min(1, count/DENSITY_FULL));
-    const hex = rampColor(avg);
-    const [r,g,b] = hexToRgb(hex);
-    img.data[i*4]   = r;
-    img.data[i*4+1] = g;
-    img.data[i*4+2] = b;
-    img.data[i*4+3] = Math.round(alpha*(crisp?210:230));
-  }
-  gctx.putImageData(img, 0, 0);
-
-  const outCtx = heatCanvas.getContext('2d');
-  outCtx.clearRect(0,0,outW,outH);
-  outCtx.imageSmoothingEnabled = !crisp;
-  outCtx.imageSmoothingQuality = 'high';
-  outCtx.drawImage(grid, 0, 0, outW, outH);
-}
-
-function renderCurrentDisplay(){
-  if (display === 'heatmap' || display === 'grid'){
-    // Points stay visible underneath a semi-transparent heat layer -- a
-    // blob or a grid alone loses the concrete "here's an actual stop"
-    // grounding the points view has; this keeps both.
-    svg.style.visibility = 'visible';
-    render();
-    heatCanvas.hidden = false;
-    heatCanvas.style.opacity = display === 'grid' ? '0.82' : '0.72';
-    mapHolder.style.backgroundImage = 'none';
-    renderHeatmapCanvas(display === 'grid');
-  } else {
-    heatCanvas.hidden = true;
-    svg.style.visibility = 'visible';
-    mapHolder.style.backgroundImage = '';
-    render();
-  }
-}
-
-// hover tooltip via delegation (points-mode only)
-const tooltip = document.getElementById('tooltip');
-const byId = Object.fromEntries(DATA.map(r=>[r.id, r]));
-const byStation = Object.fromEntries(WEATHER_STATIONS.map(s=>[String(s.id), s]));
-svg.addEventListener('mousemove', (e)=>{
-  const t = e.target;
-  if ((t.tagName === 'circle' || t.tagName === 'rect') && t.dataset.id){
-    const rec = byId[t.dataset.id];
-    if (!rec) return;
-    const hourLabel = mode === 'avg' ? 'Average, 13:00–19:00' : `${mode}:00`;
-    tooltip.innerHTML = `<b>${escapeHtml(rec.n) || 'Unnamed stop'}</b>` +
-      `Sun-exposure score: ${rec.e.toFixed(2)}/7 total<br>` +
-      `At ${hourLabel}: ${weightFor(rec).toFixed(2)}` + (isTreeShade(weightFor(rec)) ? ' (tree shade)' : '') +
-      (rec.ts > 0 ? `<br>Tree-crown shade in ${rec.ts} of 7 hours` : '') +
-      (rec.sh ? '<br>Has shelter' : '') +
-      (rec.st ? '' : '<br>Class depends on the shelter factor');
-  } else if (t.dataset && t.dataset.station){
-    const st = byStation[t.dataset.station];
-    if (!st) return;
-    tooltip.innerHTML = `<b>${st.name}</b>ARPA weather station<br>${st.pctOver30}% of May&ndash;Sep readings &gt;30&deg;C<br>Source for the critical-hours analysis`;
-  } else {
-    tooltip.classList.remove('show');
-    return;
-  }
-  tooltip.style.left = (e.clientX + 14) + 'px';
-  tooltip.style.top = (e.clientY + 14) + 'px';
-  tooltip.classList.add('show');
-});
-svg.addEventListener('mouseleave', ()=> tooltip.classList.remove('show'));
-
-// ---- sun compass ----
-// Solar azimuth/elevation for Milan, June 28 2026 -- the exact values the
-// shadow-march script computed for each hour (see solar_exposure.py's own
-// printed output). Azimuth: degrees clockwise from North. Elevation maps to
-// radius: high sun (near-zenith) sits near the center, low sun near the rim,
-// same convention as a standard architect's sun-path diagram.
-const SUN_POSITIONS = {
-  13: {azimuth:164.1, elevation:67.2},
-  14: {azimuth:199.8, elevation:66.8},
-  15: {azimuth:228.3, elevation:60.8},
-  16: {azimuth:247.5, elevation:51.9},
-  17: {azimuth:261.2, elevation:41.8},
-  18: {azimuth:272.4, elevation:31.3},
-  19: {azimuth:282.4, elevation:20.9},
+// Dot radius by scheduled departures per hour: square root, between MIN and MAX pixels.
+const DEP_MAX = Math.max(1, ...MAIN.stops.flatMap(d => d.d.filter(v => v !== null)));
+const DEP_POS_SORTED = MAIN.stops.flatMap(d => d.d.filter(v => v > 0)).sort((a,b)=>a-b);
+const compact = () => window.matchMedia('(max-width:640px)').matches;
+const radiusFor = deps => {
+  const [rMin, rMax] = compact() ? [2, 6.5] : [2.5, 9];
+  return rMin + (rMax - rMin) * Math.sqrt(Math.min(1, Math.max(0, deps || 0) / DEP_MAX));
 };
-const SUN_CX = 70, SUN_CY = 70, SUN_R = 54;
-function sunXY(azimuth, elevation){
-  const r = SUN_R * (1 - elevation/90);
-  const rad = (azimuth-90) * Math.PI/180; // svg 0deg=east(+x); rotate so 0deg=north(+y up)
-  return [SUN_CX + r*Math.cos(rad), SUN_CY + r*Math.sin(rad)];
-}
-function renderSunCompass(){
-  const svg = document.getElementById('sun-compass');
-  svg.innerHTML = '';
-  const ns = 'http://www.w3.org/2000/svg';
-  [0,30,60].forEach(el=>{
-    const r = SUN_R * (1 - el/90);
-    const c = document.createElementNS(ns,'circle');
-    c.setAttribute('cx',SUN_CX); c.setAttribute('cy',SUN_CY); c.setAttribute('r',r);
-    c.setAttribute('class','ring');
-    svg.appendChild(c);
-  });
-  [['N',0,-1],['E',1,0],['S',0,1],['W',-1,0]].forEach(([label,dx,dy])=>{
-    const t = document.createElementNS(ns,'text');
-    t.setAttribute('x', SUN_CX + dx*(SUN_R+10));
-    t.setAttribute('y', SUN_CY + dy*(SUN_R+10) + 3);
-    t.setAttribute('text-anchor','middle');
-    t.setAttribute('class','cardinal');
-    t.textContent = label;
-    svg.appendChild(t);
-  });
-  const pathPts = Object.keys(SUN_POSITIONS).map(h=>sunXY(SUN_POSITIONS[h].azimuth, SUN_POSITIONS[h].elevation));
-  const path = document.createElementNS(ns,'path');
-  path.setAttribute('d', pathPts.map((p,i)=>(i===0?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' '));
-  path.setAttribute('class','path');
-  svg.appendChild(path);
-  Object.keys(SUN_POSITIONS).forEach(h=>{
-    const [x,y] = sunXY(SUN_POSITIONS[h].azimuth, SUN_POSITIONS[h].elevation);
-    const c = document.createElementNS(ns,'circle');
-    c.setAttribute('cx',x.toFixed(1)); c.setAttribute('cy',y.toFixed(1)); c.setAttribute('r',2);
-    c.setAttribute('class','sun-dim');
-    svg.appendChild(c);
-  });
-  const activeHour = mode === 'avg' ? 15 : mode;
-  const pos = SUN_POSITIONS[activeHour];
-  const [sx,sy] = sunXY(pos.azimuth, pos.elevation);
-  const halo = document.createElementNS(ns,'circle');
-  halo.setAttribute('cx',sx.toFixed(1)); halo.setAttribute('cy',sy.toFixed(1)); halo.setAttribute('r',7);
-  halo.setAttribute('fill','#F2B84B'); halo.setAttribute('opacity','0.25');
-  svg.appendChild(halo);
-  const sun = document.createElementNS(ns,'circle');
-  sun.setAttribute('cx',sx.toFixed(1)); sun.setAttribute('cy',sy.toFixed(1)); sun.setAttribute('r',4.5);
-  sun.setAttribute('class','sun');
-  svg.appendChild(sun);
 
-  document.getElementById('sun-title').textContent =
-    mode === 'avg' ? 'Sun position (15:00 shown)' : `Sun position at ${mode}:00`;
-  document.getElementById('sun-note').textContent =
-    `Azimuth ${pos.azimuth.toFixed(0)}\u00b0, elevation ${pos.elevation.toFixed(0)}\u00b0 above the horizon \u2014 center is overhead, the rim is the horizon. This is what drives the shadow march in solar_exposure.py, not a decoration.`;
-}
-
-// ---- controls ----
-// Hour is driven by the single shared control near the top of the page (see
-// "shared view/hour controls" below) -- it sets `mode` (this view) and
-// `waitMode` (the wait view) and re-renders whichever view is active.
-
-const displays = [{v:'points', label:'Points'}, {v:'heatmap', label:'Heatmap'}, {v:'grid', label:'Grid'}];
-const displayButtons = document.getElementById('display-buttons');
-displays.forEach(m=>{
-  const b = document.createElement('button');
-  b.textContent = m.label;
-  b.className = m.v === display ? 'active' : '';
-  b.addEventListener('click', ()=>{
-    display = m.v;
-    [...displayButtons.children].forEach(btn=>btn.classList.remove('active'));
-    b.classList.add('active');
-    renderCurrentDisplay();
-  });
-  displayButtons.appendChild(b);
-});
-
-document.getElementById('unstable-toggle').addEventListener('change', (e)=>{
-  showUnstable = e.target.checked;
-  renderCurrentDisplay();
-});
-
-document.getElementById('stations-toggle').addEventListener('change', (e)=>{
-  showStations = e.target.checked;
-  renderCurrentDisplay();
-});
-
-function updateLegend(){
-  const title = document.getElementById('legend-title');
-  const note = document.getElementById('legend-note');
-  const labels = document.getElementById('exposure-ramp-labels');
-  if (mode === 'avg'){
-    title.textContent = 'Sun-exposure score (0\u20137)';
-    note.textContent = `Sum of the weighted exposure score (0 building shadow, ${PARAM_TEXT.tree} tree shade, ${PARAM_TEXT.shelter} sun with shelter, 1 full sun) over the 7 hours studied (13:00\u201319:00).`;
-    labels.innerHTML = '<span>0</span><span>7</span>';
-  } else {
-    title.textContent = `Sun-exposure score at ${mode}:00`;
-    note.textContent = `Weighted exposure score at this hour: 0 = building shadow, ${PARAM_TEXT.tree} = tree shade, ${PARAM_TEXT.shelter} = direct sun with a shelter present, 1 = full sun, no shelter.`;
-    labels.innerHTML = '<span>0 (shadow)</span><span>1 (full sun)</span>';
-  }
-}
-
-function renderRampStrip(){
-  const strip = document.getElementById('ramp-strip');
-  strip.innerHTML = '';
-  for (let i=0;i<24;i++){
-    const s = document.createElement('span');
-    s.style.background = rampColor(i/23);
-    strip.appendChild(s);
-  }
-}
-
-// ==== Wait-time map (separate dataset, separate section, separate projection) ====
-const waitLons = WAIT_DATA.map(d=>d.lo), waitLats = WAIT_DATA.map(d=>d.la);
-const waitLonMin = Math.min(...waitLons), waitLonMax = Math.max(...waitLons);
-const waitLatMin = Math.min(...waitLats), waitLatMax = Math.max(...waitLats);
-const waitLatMid = (waitLatMin+waitLatMax)/2;
-const waitCosLat = Math.cos(waitLatMid*Math.PI/180);
-const waitWDeg = (waitLonMax-waitLonMin)*waitCosLat, waitHDeg = (waitLatMax-waitLatMin);
-const WAIT_VB_W = 1000, WAIT_VB_H = Math.round(WAIT_VB_W * (waitHDeg/waitWDeg));
-function waitProject(lon, lat){
-  const x = ((lon-waitLonMin)*waitCosLat/waitWDeg) * WAIT_VB_W*(1-2*PAD) + WAIT_VB_W*PAD;
-  const y = ((waitLatMax-lat)/waitHDeg) * WAIT_VB_H*(1-2*PAD) + WAIT_VB_H*PAD;
-  return [x,y];
-}
-const waitSvg = document.getElementById('waitmap');
-waitSvg.setAttribute('viewBox', `0 0 ${WAIT_VB_W} ${WAIT_VB_H}`);
-
-let waitMode = 'avg'; // 'avg' | 13..19
-function seriesAt(arr, hour){
-  if (hour === 'avg'){
-    const vals = arr.filter(v=>v!==null);
-    if (!vals.length) return null;
-    return vals.reduce((a,b)=>a+b,0)/vals.length;
-  }
-  return arr[hour-13];
-}
-function waitValueFor(rec){ return seriesAt(rec.w, waitMode); }
-function waitColorFor(rec){
-  const v = waitValueFor(rec);
-  if (v===null || v===undefined) return null;
-  return waitRampColor(v/WAIT_CAP_MIN);
-}
-
-function renderWaitMap(){
-  waitSvg.innerHTML = '';
-  const frag = document.createDocumentFragment();
-  WAIT_DATA.forEach(rec=>{
-    const color = waitColorFor(rec);
-    if (color===null) return; // no service at this stop in this hour -- omit, don't fake a zero wait
-    const [x,y] = waitProject(rec.lo, rec.la);
-    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
-    c.setAttribute('cx', x.toFixed(2));
-    c.setAttribute('cy', y.toFixed(2));
-    c.setAttribute('r', 2.2);
-    c.setAttribute('fill', color);
-    c.setAttribute('fill-opacity', 0.9);
-    c.setAttribute('stroke', 'var(--marker-edge)');
-    c.setAttribute('stroke-width', 0.5);
-    c.dataset.waitId = rec.id;
-    frag.appendChild(c);
-  });
-  waitSvg.appendChild(frag);
-}
-
-// Range suffix for a wait estimate; either bound can be null (no data for
-// that bound at that hour), in which case the range is left out.
-function rangeLabel(lo, hi, unit){
-  if (lo === null || lo === undefined || hi === null || hi === undefined) return '';
-  return ` (range ${lo.toFixed(1)}\u2013${hi.toFixed(1)}${unit})`;
-}
-
-const waitById = Object.fromEntries(WAIT_DATA.map(r=>[r.id, r]));
-waitSvg.addEventListener('mousemove', (e)=>{
-  const t = e.target;
-  if (t.tagName !== 'circle' || !t.dataset.waitId){ tooltip.classList.remove('show'); return; }
-  const rec = waitById[t.dataset.waitId];
-  if (!rec) return;
-  const v = waitValueFor(rec);
-  const hourLabel = waitMode === 'avg' ? 'Average, 13:00–19:00' : `${waitMode}:00`;
-  const nl = waitMode === 'avg' ? Math.round(rec.nl.reduce((a,b)=>a+b,0)/Math.max(1,rec.nl.filter(x=>x>0).length)) : rec.nl[waitMode-13];
-  tooltip.innerHTML = `<b>${escapeHtml(rec.n) || 'Unnamed stop'}</b>${hourLabel}<br>Estimated wait: ${v!==null?v.toFixed(1)+' min':'no service'}${v!==null?rangeLabel(seriesAt(rec.wl, waitMode), seriesAt(rec.wh, waitMode), ' min'):''}${nl?'<br>'+nl+' line(s) observed':''}`;
-  tooltip.style.left = (e.clientX + 14) + 'px';
-  tooltip.style.top = (e.clientY + 14) + 'px';
-  tooltip.classList.add('show');
-});
-waitSvg.addEventListener('mouseleave', ()=> tooltip.classList.remove('show'));
-
-function renderWaitRampStrip(){
-  const strip = document.getElementById('wait-ramp-strip');
-  strip.innerHTML = '';
-  for (let i=0;i<24;i++){
-    const s = document.createElement('span');
-    s.style.background = waitRampColor(i/23);
-    strip.appendChild(s);
-  }
-}
-renderWaitRampStrip();
-renderWaitMap();
-
-// ==== Main view: deck.gl 3D columns (calore x attesa) ====
-// Exposure color anchors, per contract/map_data.md's exposure_score values:
-// 0 = building shadow, 0.5 = direct sun with a shelter present, 1 = full sun.
-const EXPOSURE_COLOR_ANCHORS = [
-  {t:0,   rgb:[0x1D,0x5C,0x63]}, // shadow
-  {t:0.5, rgb:[0xF2,0xB8,0x4B]}, // sun + shelter
-  {t:1,   rgb:[0xC9,0x3A,0x1E]}, // full sun
-];
-function exposureColorRGBA(t){
-  t = Math.max(0, Math.min(1, t));
-  let lo = EXPOSURE_COLOR_ANCHORS[0], hi = EXPOSURE_COLOR_ANCHORS[EXPOSURE_COLOR_ANCHORS.length-1];
-  for (let i=0;i<EXPOSURE_COLOR_ANCHORS.length-1;i++){
-    if (t >= EXPOSURE_COLOR_ANCHORS[i].t && t <= EXPOSURE_COLOR_ANCHORS[i+1].t){
-      lo = EXPOSURE_COLOR_ANCHORS[i]; hi = EXPOSURE_COLOR_ANCHORS[i+1]; break;
-    }
-  }
-  const span = (hi.t - lo.t) || 1;
-  const frac = (t - lo.t) / span;
-  return [
-    Math.round(lo.rgb[0] + (hi.rgb[0]-lo.rgb[0])*frac),
-    Math.round(lo.rgb[1] + (hi.rgb[1]-lo.rgb[1])*frac),
-    Math.round(lo.rgb[2] + (hi.rgb[2]-lo.rgb[2])*frac),
-    255,
-  ];
-}
+// ---- per-stop values ----
+const exposedAt = (d, hour) => seriesAt(d.x, hour);
+const depsAt = (d, hour) => seriesAt(d.d, hour);
+const scoreAt = (d, hour) => seriesAt(d.s, hour);
+const waitAt = (d, hour) => seriesAt(d.w, hour);
 function wordForScore(t){
   if (isTreeShade(t)) return 'tree shade';
   if (t < 0.25) return 'shadow';
   if (t < 0.75) return 'sun with shelter';
   return 'full sun';
 }
-function scoreForHour(rec, hour){
-  if (hour === 'avg') return rec.s.reduce((a,b)=>a+b,0)/rec.s.length;
-  return rec.s[hour-13];
-}
-function waitForHourMain(rec, hour){ return seriesAt(rec.w, hour); }
-
-const MAIN_ELEVATION_SCALE = 20; // meters of column height per minute of wait
-const MAIN_BOUNDS = MAIN_DATA.bounds; // [lonMin, latMin, lonMax, latMax]
-
-function fitMainZoom(containerWidth, containerHeight){
-  const [lonMin, latMin, lonMax, latMax] = MAIN_BOUNDS;
-  const lonSpan = Math.max(1e-6, lonMax - lonMin);
-  const latSpan = Math.max(1e-6, latMax - latMin);
-  const latMid = (latMin + latMax) / 2;
-  const zLon = Math.log2((containerWidth || 560) * 360 / (lonSpan * 256));
-  const zLat = Math.log2((containerHeight || 520) * 360 / (latSpan * 256 / Math.cos(latMid*Math.PI/180)));
-  return Math.max(1, Math.min(zLon, zLat) - 0.2);
+const fmtScore = v => v === null ? '–' : v >= 0.995 ? '1' : v <= 0.005 ? '0' : String(+v.toFixed(2)).replace(/^0/, '');
+function rangeLabel(lo, hi){
+  if (lo === null || lo === undefined || hi === null || hi === undefined) return '';
+  return ` (range ${lo.toFixed(1)}–${hi.toFixed(1)})`;
 }
 
-function mainTooltip({object}){
-  if (!object) return null;
-  const hourLabel = sharedHour === 'avg' ? 'Average, 13:00–19:00' : `${sharedHour}:00`;
-  const score = scoreForHour(object, sharedHour);
-  const wait = waitForHourMain(object, sharedHour);
-  return {
-    html: `<b>${escapeHtml(object.n) || 'Unnamed stop'}</b>${hourLabel}<br>` +
-      `Sun exposure: ${wordForScore(score)} (${score.toFixed(2)})<br>` +
-      (object.ts > 0 ? `Tree-crown shade in ${object.ts} of 7 hours<br>` : '') +
-      (wait !== null
-        ? `Estimated wait ${wait.toFixed(1)} min${rangeLabel(seriesAt(object.wl, sharedHour), seriesAt(object.wh, sharedHour), '')}`
-        : 'Wait: no service') + '<br>' +
-      `Exposure decile ${object.dc}/10 (10 = most exposed)` +
-      (object.st ? '' : '<br>Class depends on the shelter factor'),
-    style: {
-      backgroundColor: '#1A1A1A', color: '#FFFFFF',
-      fontFamily: 'ui-monospace,SFMono-Regular,"SF Mono",Consolas,monospace',
-      fontSize: '12px', padding: '8px 10px', borderRadius: '7px', lineHeight: '1.5', maxWidth: '240px',
-    },
-  };
-}
+// ---- shared state ----
+let view = 'main';      // 'main' | 'exposure' | 'wait' | 'trees'
+let hour = 'avg';       // 'avg' | 13..19
+let heat = false;
+let showUnstable = true;
+let showStations = true;
+let selectedId = null;  // stop picked in the priority list
 
-function buildMainLayers(hour){
-  const withWait = MAIN_DATA.stops.filter(s => waitForHourMain(s, hour) !== null);
-  const withoutWait = MAIN_DATA.stops.filter(s => waitForHourMain(s, hour) === null);
-  const [lonMin, latMin, lonMax, latMax] = MAIN_BOUNDS;
-  return [
-    new deck.BitmapLayer({
-      id: 'buildings-backdrop',
-      image: BUILDINGS_DECK_URL,
-      bounds: [lonMin, latMin, lonMax, latMax],
-      opacity: 0.85,
-    }),
-    new deck.ScatterplotLayer({
-      id: 'stops-no-service',
-      data: withoutWait,
-      pickable: true,
-      radiusUnits: 'meters',
-      getPosition: d => [d.lo, d.la],
-      getRadius: 9,
-      getFillColor: [154, 160, 163, 210],
-      getLineColor: [26, 26, 26, 90],
-      lineWidthMinPixels: 1,
-      stroked: true,
-      updateTriggers: { getPosition: [hour] },
-    }),
-    new deck.ColumnLayer({
-      id: 'stops-wait-columns',
-      data: withWait,
-      pickable: true,
-      extruded: true,
-      diskResolution: 6,
-      radius: 11,
-      elevationScale: 1,
-      getPosition: d => [d.lo, d.la],
-      getElevation: d => Math.min(waitForHourMain(d, hour), WAIT_CAP_MIN) * MAIN_ELEVATION_SCALE,
-      getFillColor: d => exposureColorRGBA(scoreForHour(d, hour)),
-      updateTriggers: {
-        getElevation: [hour],
-        getFillColor: [hour],
-      },
-    }),
-  ];
-}
-
-let deckgl = null;
-function ensureDeck(){
-  if (deckgl) return;
-  const holder = document.getElementById('deck-holder');
-  const rect = holder.getBoundingClientRect();
-  const [lonMin, latMin, lonMax, latMax] = MAIN_BOUNDS;
-  deckgl = new deck.DeckGL({
-    container: document.getElementById('deck-container'),
-    initialViewState: {
-      longitude: (lonMin + lonMax) / 2,
-      latitude: (latMin + latMax) / 2,
-      zoom: fitMainZoom(rect.width, rect.height),
-      pitch: 50,
-      bearing: 0,
-    },
-    controller: true,
-    layers: [],
-    getTooltip: mainTooltip,
-  });
-}
-function updateMainLayers(){
-  ensureDeck();
-  deckgl.setProps({ layers: buildMainLayers(sharedHour) });
-}
-function renderMainRampStrip(){
-  const strip = document.getElementById('main-ramp-strip');
-  strip.innerHTML = '';
-  for (let i=0;i<24;i++){
-    const [r,g,b] = exposureColorRGBA(i/23);
-    const s = document.createElement('span');
-    s.style.background = rgbToHex(r,g,b);
-    strip.appendChild(s);
+// ---- stop sets per hour (cached) ----
+const setCache = new Map();
+function mainSets(h){
+  if (!setCache.has(h)){
+    const colored = [], grey = [], hollow = [];
+    MAIN.stops.forEach(d => {
+      if (d.u) hollow.push(d);
+      else if (exposedAt(d, h) === null) grey.push(d);
+      else colored.push(d);
+    });
+    setCache.set(h, {colored, grey, hollow});
   }
+  return setCache.get(h);
 }
 
-// Discrete exposure levels (legend key next to the ramp).
-function renderLevelKeys(){
-  const levels = [
-    [0, 'Building shadow', '0'],
-    [P.tree_transmissivity, 'Tree shade', PARAM_TEXT.tree],
-    [P.shelter_exposure_factor, 'Sun with shelter', PARAM_TEXT.shelter],
-    [1, 'Full sun', '1'],
-  ];
-  document.querySelectorAll('[data-level-key]').forEach(el=>{
-    el.innerHTML = levels.map(([t,label,val])=>{
-      const [r,g,b] = exposureColorRGBA(t);
-      return `<div><i style="background:${rgbToHex(r,g,b)}"></i>${label} (${val})</div>`;
-    }).join('');
-  });
+// ---- tooltip: hour strip ----
+// One row of 7 cells per series: exposure score (chip coloured like the map) and
+// wait minutes; the selected hour is outlined.
+function hourStrip(rows){
+  const cell = 'width:27px;padding:1px 0;text-align:center;';
+  const head = HOURS.map(h => `<td style="${cell}color:#9AA0A3;font-size:10px">${h}</td>`).join('');
+  const body = rows.map(r => `<tr><td style="padding-right:5px;color:#B8BDC0;font-size:10px;white-space:nowrap">${r.label}</td>` +
+    r.cells.map((c, i) => {
+      const sel = hour === HOURS[i] ? 'outline:1.5px solid #fff;outline-offset:-1px;' : '';
+      const bg = c.bg ? `background:${c.bg};color:${c.fg || '#1A1A1A'};` : '';
+      return `<td style="${cell}${bg}${sel}font-size:10.5px;border-radius:3px">${c.t}</td>`;
+    }).join('') + '</tr>').join('');
+  return `<table style="border-collapse:separate;border-spacing:1px;margin-top:6px"><tr><td></td>${head}</tr>${body}</table>`;
 }
-renderLevelKeys();
+function scoreCell(v){
+  if (v === null) return {t: '–'};
+  const rgb = rampRGB(EXPOSURE_RAMP, v);
+  return {t: fmtScore(v), bg: rgbToHex(...rgb), fg: v > 0.55 ? '#fff' : '#1A1A1A'};
+}
+const minCell = v => ({t: v === null ? '–' : v.toFixed(v >= 10 ? 0 : 1)});
 
-// ==== Trees view: deck.gl scatterplot of the municipal tree census ====
-// The tree file (~250k trees, columnar and quantized, see prepare_tree_data.py)
-// is loaded the first time the view opens, not at page load.
-const TREE_HEIGHT_CAP = 30; // m, color scale saturates here
-const TREE_RAMP = ['#E5F5B0','#A6DB8A','#5BB76A','#238A4A','#0B5A32','#053A20'];
-const TREE_PICK_ZOOM = 12.5; // below this zoom the 250k dots are not pickable (speed)
-const TREE_LUT = Array.from({length: TREE_HEIGHT_CAP + 1}, (_, h)=>{
-  const t = Math.max(0, Math.min(1, (h - 1) / (TREE_HEIGHT_CAP - 1)));
-  const scaled = t * (TREE_RAMP.length - 1), i = Math.min(TREE_RAMP.length - 2, Math.floor(scaled)), f = scaled - i;
-  const a = hexToRgb(TREE_RAMP[i]), b = hexToRgb(TREE_RAMP[i+1]);
-  return [lerp(a[0],b[0],f), lerp(a[1],b[1],f), lerp(a[2],b[2],f)];
-});
 const TOOLTIP_STYLE = {
   backgroundColor: '#1A1A1A', color: '#FFFFFF',
   fontFamily: 'ui-monospace,SFMono-Regular,"SF Mono",Consolas,monospace',
-  fontSize: '12px', padding: '8px 10px', borderRadius: '7px', lineHeight: '1.5', maxWidth: '240px',
+  fontSize: '12px', padding: '8px 10px', borderRadius: '7px', lineHeight: '1.5', maxWidth: '270px',
 };
-const SITE_URL = document.querySelector('meta[property="og:url"]').content;
+const nameOf = d => escapeHtml(d.n) || 'Unnamed stop';
 
-const treesEl = {
-  holder: document.getElementById('trees-holder'),
-  status: document.getElementById('trees-status'),
-  partial: document.getElementById('trees-partial-note'),
-};
-let trees = null;        // decoded, see decodeTrees
-let treesState = 'idle'; // idle | loading | ready | error
-let treesDeck = null;
-let treesZoom = 0;
-let treesLoadMs = null;
-
-function setTreesStatus(state, text){
-  treesState = state;
-  treesEl.status.dataset.state = state;
-  treesEl.status.className = 'deck-status' + (state === 'error' ? ' error' : '');
-  treesEl.status.hidden = !text;
-  treesEl.status.textContent = text || '';
+function osmStopTooltip(d){
+  const score = scoreAt(d, hour), wait = waitAt(d, hour), exposed = exposedAt(d, hour), deps = depsAt(d, hour);
+  let html = `<b style="font-family:system-ui,sans-serif;font-size:12.5px">${nameOf(d)}</b>${hourLabel(hour)}<br>`;
+  if (view === 'main'){
+    if (d.u) html += 'Not linked to a GTFS stop: no wait estimate<br>';
+    else if (exposed === null) html += 'No service estimate at this hour<br>';
+    else html += `Waiting in the sun: ${fmtMin(exposed)} min<br>`;
+  }
+  html += `Sun exposure: ${wordForScore(score)} (${score.toFixed(2)})<br>`;
+  if (!d.u && wait !== null){
+    html += `Estimated wait ${fmtMin(wait)} min${rangeLabel(seriesAt(d.wl, hour), seriesAt(d.wh, hour))}<br>`;
+  }
+  if (!d.u && deps !== null) html += `Departures: ${hour === 'avg' ? deps.toFixed(1) + ' per hour' : deps}<br>`;
+  if (d.ts > 0) html += `Tree-crown shade in ${d.ts} of 7 hours<br>`;
+  if (SHELTERED.has(d.id)) html += 'Has shelter<br>';
+  html += `Exposure decile ${d.dc}/10 (10 = most exposed)`;
+  if (!d.st) html += '<br>Class depends on the shelter factor';
+  html += hourStrip([
+    {label: 'score', cells: d.s.map(scoreCell)},
+    {label: 'wait', cells: d.w.map(minCell)},
+  ]);
+  return html;
+}
+function waitStopTooltip(d){
+  const w = waitAt(d, hour), deps = depsAt({d: d.nd}, hour);
+  const nl = hour === 'avg' ? null : d.nl[hour-13];
+  let html = `<b style="font-family:system-ui,sans-serif;font-size:12.5px">${nameOf(d)}</b>${hourLabel(hour)}<br>` +
+    (w !== null ? `Estimated wait: ${fmtMin(w)} min${rangeLabel(seriesAt(d.wl, hour), seriesAt(d.wh, hour))}` : 'No service at this hour') +
+    (nl ? `<br>${nl} line(s) observed` : '') +
+    (deps !== null && deps > 0 ? `<br>Departures: ${hour === 'avg' ? deps.toFixed(1) + ' per hour' : deps}` : '');
+  return html + hourStrip([
+    {label: 'wait', cells: d.w.map(minCell)},
+    {label: 'dep.', cells: d.nd.map(v => ({t: String(v)}))},
+  ]);
 }
 
+function tooltip(info){
+  const {layer, object, index} = info;
+  if (!layer) return null;
+  let html = null;
+  if (layer.id.startsWith('trees-')) return treesTooltip(info);
+  if (layer.id === 'stations' && object){
+    html = `<b style="font-family:system-ui,sans-serif">${escapeHtml(object.name)}</b>ARPA weather station<br>${object.pctOver30}% of May–Sep readings &gt;30°C<br>Source for the critical-hours analysis`;
+  } else if (layer.id.startsWith('stops-') && object){
+    html = view === 'wait' ? waitStopTooltip(object) : osmStopTooltip(object);
+  }
+  return html ? {html, style: TOOLTIP_STYLE} : null;
+}
+
+// ---- layers ----
+const backdrop = () => new deck.BitmapLayer({
+  id: 'backdrop', image: BUILDINGS_DECK_URL, bounds: BOUNDS, opacity: 0.85, ...NO_DEPTH,
+});
+// All 7 hourly shadow images stay mounted; only visibility changes, so switching
+// hours does not reload textures. Average: all 7 at low opacity, so a pixel
+// shaded in every hour is about as dark as in a single-hour view.
+function shadowLayers(){
+  return HOURS.filter(h => SHADOW_URLS[h]).map(h => new deck.BitmapLayer({
+    id: `shadow-${h}`, image: SHADOW_URLS[h], bounds: BOUNDS,
+    visible: hour === 'avg' || hour === h, opacity: hour === 'avg' ? 0.2 : 1, ...NO_DEPTH,
+  }));
+}
+function heatLayer(data, getPosition, getWeight, colors, opts){
+  return new deck.HeatmapLayer({
+    id: 'heatmap', data, getPosition, getWeight, radiusPixels: 30, intensity: 1, threshold: 0.06,
+    aggregation: 'MEAN', opacity: 0.7,
+    colorRange: colors.map(c => hexToRgb(c)),
+    updateTriggers: {getWeight: [view, hour]}, ...NO_DEPTH, ...opts,
+  });
+}
+const RING_ICON = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d');
+  g.strokeStyle = 'rgba(26,26,26,0.85)'; g.lineWidth = 3.5; g.setLineDash([5, 5]);
+  g.beginPath(); g.arc(32, 32, 27, 0, Math.PI * 2); g.stroke();
+  return c.toDataURL('image/png');
+})();
+const unstableLayer = (data, radiusOf) => new deck.IconLayer({
+  id: 'ring-unstable', data, iconAtlas: RING_ICON,
+  iconMapping: {ring: {x: 0, y: 0, width: 64, height: 64}}, getIcon: () => 'ring',
+  sizeUnits: 'pixels', getSize: d => 2 * radiusOf(d) + 9, getPosition: d => [d.lo, d.la],
+  updateTriggers: {getSize: [view, hour]}, ...NO_DEPTH,
+});
+function selectionLayers(){
+  const d = selectedId && (view === 'main' || view === 'exposure') ? MAIN.stops.find(s => s.id === selectedId) : null;
+  if (!d) return [];
+  const common = {data: [d], getPosition: x => [x.lo, x.la], radiusUnits: 'pixels', filled: false, stroked: true, lineWidthUnits: 'pixels', ...NO_DEPTH};
+  return [
+    new deck.ScatterplotLayer({...common, id: 'pick-halo', getRadius: 15, getLineColor: [255,255,255,255], lineWidthMinPixels: 6}),
+    new deck.ScatterplotLayer({...common, id: 'pick-ring', getRadius: 15, getLineColor: [26,26,26,255], lineWidthMinPixels: 3}),
+  ];
+}
+const greyDots = (id, data) => new deck.ScatterplotLayer({
+  id, data, pickable: true, radiusUnits: 'pixels', getPosition: d => [d.lo, d.la], getRadius: 2.6,
+  getFillColor: [...GREY_RGB, 235], stroked: true, getLineColor: STROKE, lineWidthUnits: 'pixels', lineWidthMinPixels: 0.6,
+  updateTriggers: {getPosition: [view, hour]}, ...NO_DEPTH,
+});
+const hollowCircles = data => new deck.ScatterplotLayer({
+  id: 'stops-unlinked', data, pickable: true, radiusUnits: 'pixels', getPosition: d => [d.lo, d.la], getRadius: compact() ? 3.4 : 4.2,
+  filled: false, stroked: true, getLineColor: [90, 96, 100, 255], lineWidthUnits: 'pixels', lineWidthMinPixels: 1.3,
+  ...NO_DEPTH,
+});
+function stationLayer(){
+  return new deck.ScatterplotLayer({
+    id: 'stations', data: WEATHER_STATIONS, pickable: true, radiusUnits: 'pixels', getPosition: d => [d.lo, d.la], getRadius: 6,
+    getFillColor: [255,255,255,255], stroked: true, getLineColor: rgba('#1D5C63'), lineWidthUnits: 'pixels', lineWidthMinPixels: 2.5, ...NO_DEPTH,
+  });
+}
+
+function mainLayers(){
+  const {colored, grey, hollow} = mainSets(hour);
+  const layers = [backdrop(), ...shadowLayers()];
+  if (heat){
+    const cap = BREAKS[3] * 2.5; // weights scaled to ~0..1
+    layers.push(heatLayer(colored, d => [d.lo, d.la], d => Math.min(1, exposedAt(d, hour) / cap), CLASS_COLORS));
+  }
+  layers.push(
+    hollowCircles(hollow),
+    greyDots('stops-nowait', grey),
+    new deck.ScatterplotLayer({
+      id: 'stops-main', data: colored, pickable: true, radiusUnits: 'pixels', autoHighlight: true, highlightColor: [255,255,255,160],
+      getPosition: d => [d.lo, d.la],
+      getRadius: d => radiusFor(depsAt(d, hour)),
+      getFillColor: d => rgba(CLASS_COLORS[classOf(exposedAt(d, hour))], 245),
+      stroked: true, getLineColor: STROKE, lineWidthUnits: 'pixels', lineWidthMinPixels: 0.8,
+      updateTriggers: {getRadius: [view, hour], getFillColor: [view, hour]}, ...NO_DEPTH,
+    }),
+  );
+  if (showUnstable) layers.push(unstableLayer(colored.filter(d => !d.st), d => radiusFor(depsAt(d, hour))));
+  return layers;
+}
+function exposureLayers(){
+  const layers = [backdrop(), ...shadowLayers()];
+  if (heat) layers.push(heatLayer(MAIN.stops, d => [d.lo, d.la], d => scoreAt(d, hour), EXPOSURE_RAMP.filter((_, i) => i % 2 === 0)));
+  const r = compact() ? 3 : 4;
+  layers.push(new deck.ScatterplotLayer({
+    id: 'stops-exposure', data: MAIN.stops, pickable: true, radiusUnits: 'pixels', autoHighlight: true, highlightColor: [255,255,255,160],
+    getPosition: d => [d.lo, d.la], getRadius: r,
+    getFillColor: d => [...rampRGB(EXPOSURE_RAMP, scoreAt(d, hour)), 245],
+    stroked: true, getLineColor: STROKE, lineWidthUnits: 'pixels', lineWidthMinPixels: 0.8,
+    updateTriggers: {getFillColor: [view, hour]}, ...NO_DEPTH,
+  }));
+  if (showUnstable) layers.push(unstableLayer(MAIN.stops.filter(d => !d.st), () => r));
+  if (showStations) layers.push(stationLayer());
+  return layers;
+}
+function waitLayers(){
+  const served = WAIT.filter(d => waitAt(d, hour) !== null), idle = WAIT.filter(d => waitAt(d, hour) === null);
+  const layers = [backdrop()];
+  if (heat) layers.push(heatLayer(served, d => [d.lo, d.la], d => Math.min(1, waitAt(d, hour) / WAIT_CAP_MIN), WAIT_RAMP));
+  layers.push(
+    greyDots('stops-idle', idle),
+    new deck.ScatterplotLayer({
+      id: 'stops-wait', data: served, pickable: true, radiusUnits: 'pixels', autoHighlight: true, highlightColor: [255,255,255,160],
+      getPosition: d => [d.lo, d.la], getRadius: compact() ? 3 : 4,
+      getFillColor: d => [...rampRGB(WAIT_RAMP, waitAt(d, hour) / WAIT_CAP_MIN), 245],
+      stroked: true, getLineColor: STROKE, lineWidthUnits: 'pixels', lineWidthMinPixels: 0.8,
+      updateTriggers: {getFillColor: [view, hour]}, ...NO_DEPTH,
+    }),
+  );
+  return layers;
+}
+
+// ---- Trees view: municipal tree census, loaded the first time the view opens ----
+const TREE_PICK_ZOOM = 12.5; // below this zoom the 250k dots are not pickable (speed)
+const TREE_LUT = Array.from({length: TREE_HEIGHT_CAP + 1}, (_, h) => rampRGB(TREE_RAMP, Math.max(0, Math.min(1, (h - 1) / (TREE_HEIGHT_CAP - 1)))));
+const SITE_URL = document.querySelector('meta[property="og:url"]').content;
+const mapStatus = document.getElementById('map-status');
+let trees = null;        // decoded, see decodeTrees
+let treesState = 'idle'; // idle | loading | ready | error
+let treesPartialHtml = '';
+let mapZoom = 0;
+
+function setMapStatus(state, text){
+  treesState = state;
+  mapStatus.dataset.state = state;
+  mapStatus.className = 'deck-status' + (state === 'error' ? ' error' : '');
+  mapStatus.hidden = !text;
+  mapStatus.textContent = text || '';
+}
 function decodeTrees(t){
   const n = t.n;
-  const pos = new Float32Array(2*n), rad = new Float32Array(n), col = new Uint8Array(4*n);
+  const pos = new Float32Array(2*n), rad = new Float32Array(n), col = new Uint8Array(4*n), wgt = new Float32Array(n);
   let x = 0, y = 0;
   for (let i=0; i<n; i++){
     x += t.x[i]; y += t.y[i];
     pos[2*i] = t.lon0 + x * t.scale;
     pos[2*i+1] = t.lat0 + y * t.scale;
     rad[i] = t.c[i] / 4; // c is the crown diameter in 0.5 m units
+    wgt[i] = rad[i] * rad[i] / 25; // crown area, scaled
     const c = TREE_LUT[Math.min(TREE_HEIGHT_CAP, Math.max(0, t.h[i]))];
     col[4*i] = c[0]; col[4*i+1] = c[1]; col[4*i+2] = c[2]; col[4*i+3] = 215;
   }
@@ -1132,281 +630,361 @@ function decodeTrees(t){
     posS[2*j] = pos[2*k]; posS[2*j+1] = pos[2*k+1]; radS[j] = rad[k];
     colS.set(col.subarray(4*k, 4*k+4), 4*j); colS[4*j+3] = 255;
   });
-  return {raw: t, n, pos, rad, col, s, posS, radS, colS};
+  return {raw: t, n, pos, rad, col, wgt, s, posS, radS, colS};
 }
-
 function treeTooltipHtml(i, shades){
   const t = trees.raw;
   const [g, sp] = t.species[t.sp[i]];
   const name = `${t.genera[g]} ${sp}`.trim() || 'Unknown species';
-  return `<b>${escapeHtml(name)}</b><br>Height ${t.h[i]} m<br>Crown ${(t.c[i]/2).toFixed(1)} m wide` +
-    (shades ? '<br>shades a bus stop' : '');
+  return `<b>${escapeHtml(name)}</b><br>Height ${t.h[i]} m<br>Crown ${(t.c[i]/2).toFixed(1)} m wide` + (shades ? '<br>shades a bus stop' : '');
 }
-
 function treesTooltip(info){
   const {layer, index, object} = info;
-  if (!layer || index < 0) return null;
+  if (index < 0) return null;
   let html = null;
   if (layer.id === 'trees-all' && trees) html = treeTooltipHtml(index, trees.s.includes(index));
   else if (layer.id === 'trees-shading' && trees) html = treeTooltipHtml(trees.s[index], true);
   else if (layer.id === 'trees-stops' && object){
-    html = `<b>${escapeHtml(object.n) || 'Unnamed stop'}</b><br>` +
-      `Tree-crown shade: ${object.ts} of 7 hours (13:00\u201319:00)<br>Trees within 20 m: ${object.nt}`;
+    html = `<b>${nameOf(object)}</b><br>Tree-crown shade: ${object.ts} of 7 hours (13:00–19:00)<br>Trees within 20 m: ${object.nt}`;
   }
   return html ? {html, style: TOOLTIP_STYLE} : null;
 }
-
-function buildTreesLayers(){
-  const [lonMin, latMin, lonMax, latMax] = MAIN_BOUNDS;
-  const noDepth = {depthTest: false};
-  const stops = [...MAIN_DATA.stops.filter(d => !d.ts), ...MAIN_DATA.stops.filter(d => d.ts > 0)];
-  const layers = [
-    new deck.BitmapLayer({
-      id: 'buildings-backdrop', image: BUILDINGS_DECK_URL,
-      bounds: [lonMin, latMin, lonMax, latMax], opacity: 0.85,
-    }),
-  ];
+function treesLayers(){
+  const stops = [...MAIN.stops.filter(d => !d.ts), ...MAIN.stops.filter(d => d.ts > 0)];
+  const layers = [backdrop()];
   if (trees){
+    if (heat){
+      layers.push(new deck.HeatmapLayer({
+        id: 'heatmap', data: {length: trees.n, attributes: {getPosition: {value: trees.pos, size: 2}, getWeight: {value: trees.wgt, size: 1}}},
+        radiusPixels: 25, intensity: 1, threshold: 0.05, aggregation: 'SUM', opacity: 0.75,
+        colorRange: TREE_RAMP.map(c => hexToRgb(c)), ...NO_DEPTH,
+      }));
+    }
     layers.push(
       new deck.ScatterplotLayer({
         id: 'trees-all',
         data: {length: trees.n, attributes: {
-          getPosition: {value: trees.pos, size: 2},
-          getRadius: {value: trees.rad, size: 1},
-          getFillColor: {value: trees.col, size: 4, normalized: true},
+          getPosition: {value: trees.pos, size: 2}, getRadius: {value: trees.rad, size: 1}, getFillColor: {value: trees.col, size: 4, normalized: true},
         }},
-        radiusUnits: 'meters', radiusMinPixels: 0.8,
-        pickable: treesZoom >= TREE_PICK_ZOOM, autoHighlight: true, highlightColor: [26, 26, 26, 200],
-        parameters: noDepth,
+        radiusUnits: 'meters', radiusMinPixels: 0.8, opacity: heat ? 0.35 : 1,
+        pickable: mapZoom >= TREE_PICK_ZOOM, autoHighlight: true, highlightColor: [26, 26, 26, 200], ...NO_DEPTH,
       }),
       new deck.ScatterplotLayer({
         id: 'trees-shading',
         data: {length: trees.s.length, attributes: {
-          getPosition: {value: trees.posS, size: 2},
-          getRadius: {value: trees.radS, size: 1},
-          getFillColor: {value: trees.colS, size: 4, normalized: true},
+          getPosition: {value: trees.posS, size: 2}, getRadius: {value: trees.radS, size: 1}, getFillColor: {value: trees.colS, size: 4, normalized: true},
         }},
         radiusUnits: 'meters', radiusMinPixels: 3.5,
         stroked: true, lineWidthUnits: 'pixels', lineWidthMinPixels: 1.5, getLineColor: [26, 26, 26, 255],
-        pickable: true, autoHighlight: true, highlightColor: [255, 255, 255, 200],
-        parameters: noDepth,
+        pickable: true, autoHighlight: true, highlightColor: [255, 255, 255, 200], ...NO_DEPTH,
       }),
     );
   }
   layers.push(new deck.ScatterplotLayer({
-    id: 'trees-stops',
-    data: stops,
-    radiusUnits: 'meters', radiusMinPixels: 3.5,
-    getPosition: d => [d.lo, d.la],
-    getRadius: d => d.ts > 0 ? 16 : 10,
+    id: 'trees-stops', data: stops, radiusUnits: 'meters', radiusMinPixels: 3.5,
+    getPosition: d => [d.lo, d.la], getRadius: d => d.ts > 0 ? 16 : 10,
     getFillColor: d => d.ts > 0 ? [29, 92, 99, 255] : [255, 255, 255, 235],
     stroked: true, lineWidthUnits: 'pixels', lineWidthMinPixels: 1.2, getLineColor: [26, 26, 26, 255],
-    pickable: true, parameters: noDepth,
+    pickable: true, ...NO_DEPTH,
   }));
   return layers;
 }
-
-function ensureTreesDeck(){
-  if (treesDeck) return;
-  const rect = treesEl.holder.getBoundingClientRect();
-  const [lonMin, latMin, lonMax, latMax] = MAIN_BOUNDS;
-  treesZoom = fitMainZoom(rect.width, rect.height);
-  treesDeck = new deck.DeckGL({
-    container: document.getElementById('trees-container'),
-    initialViewState: {longitude: (lonMin+lonMax)/2, latitude: (latMin+latMax)/2, zoom: treesZoom, pitch: 0, bearing: 0},
-    controller: true,
-    layers: [],
-    getTooltip: treesTooltip,
-    onViewStateChange: ({viewState})=>{
-      const was = treesZoom >= TREE_PICK_ZOOM, now = viewState.zoom >= TREE_PICK_ZOOM;
-      treesZoom = viewState.zoom;
-      if (was !== now && trees) treesDeck.setProps({layers: buildTreesLayers()});
-    },
-  });
-  window.__treesDeck = treesDeck; // test hook
-}
-
 async function fetchTrees(){
   if (INLINE && INLINE.trees) return INLINE.trees;
   const r = await fetch(TREES_URL);
   if (!r.ok) throw new Error(TREES_URL + ' -> HTTP ' + r.status);
   return r.json();
 }
+function loadTreesOnce(){
+  if (treesState !== 'idle' && treesState !== 'error') return;
+  setMapStatus('loading', 'Loading trees…');
+  const t0 = performance.now();
+  // let the "loading" state paint before the heavy decode
+  fetchTrees().then(raw => new Promise(res => requestAnimationFrame(()=>setTimeout(()=>res(raw), 0))))
+    .then(raw => {
+      trees = decodeTrees(raw);
+      window.__treesLoadMs = Math.round(performance.now() - t0);
+      setMapStatus('ready', '');
+      if (raw.partial){
+        treesPartialHtml = `This single-file version only includes the ${nfmt(raw.n)} trees whose crown shades a stop, out of ${nfmt(raw.total)}. The full tree map is on the site: <a href="${SITE_URL}">${SITE_URL.replace('https://','')}</a>.`;
+      }
+      if (view === 'trees') renderAll(); else updateMap();
+    })
+    .catch(err => { console.error(err); setMapStatus('error', 'Could not load the tree data: ' + (err && err.message ? err.message : err)); });
+}
 
-function openTreesView(){
-  ensureTreesDeck();
-  if (treesState === 'idle' || treesState === 'error'){
-    setTreesStatus('loading', 'Loading trees\u2026');
-    treesDeck.setProps({layers: buildTreesLayers()}); // backdrop + stops while the trees load
-    const t0 = performance.now();
-    // let the "loading" state paint before the heavy decode
-    fetchTrees().then(raw => new Promise(res => requestAnimationFrame(()=>setTimeout(()=>res(raw), 0))))
-      .then(raw => {
-        trees = decodeTrees(raw);
-        treesDeck.setProps({layers: buildTreesLayers()});
-        treesLoadMs = Math.round(performance.now() - t0);
-        window.__treesLoadMs = treesLoadMs;
-        setTreesStatus('ready', '');
-        if (raw.partial){
-          treesEl.partial.hidden = false;
-          treesEl.partial.innerHTML = `This single-file version only includes the ${raw.n.toLocaleString('en-US')} trees whose crown shades a stop, out of ${raw.total.toLocaleString('en-US')}. The full tree map is on the site: <a href="${SITE_URL}">${SITE_URL.replace('https://','')}</a>.`;
-        }
-      })
-      .catch(err => { console.error(err); setTreesStatus('error', 'Could not load the tree data: ' + (err && err.message ? err.message : err)); });
+// ---- the one map ----
+function fitZoom(w, h){
+  const [lonMin, latMin, lonMax, latMax] = BOUNDS;
+  const latMid = (latMin + latMax) / 2;
+  const zLon = Math.log2((w || 560) * 360 / (Math.max(1e-6, lonMax - lonMin) * 256));
+  const zLat = Math.log2((h || 520) * 360 / (Math.max(1e-6, latMax - latMin) * 256 / Math.cos(latMid*Math.PI/180)));
+  return Math.max(1, Math.min(zLon, zLat) - 0.2);
+}
+let deckgl = null;
+function ensureDeck(){
+  if (deckgl) return;
+  const rect = document.getElementById('map-holder').getBoundingClientRect();
+  const [lonMin, latMin, lonMax, latMax] = BOUNDS;
+  mapZoom = fitZoom(rect.width, rect.height);
+  deckgl = new deck.DeckGL({
+    container: document.getElementById('deck-container'),
+    initialViewState: {longitude: (lonMin+lonMax)/2, latitude: (latMin+latMax)/2, zoom: mapZoom, pitch: 0, bearing: 0},
+    controller: true,
+    layers: [],
+    getTooltip: tooltip,
+    onViewStateChange: ({viewState: vs}) => {
+      const was = mapZoom >= TREE_PICK_ZOOM, now = vs.zoom >= TREE_PICK_ZOOM;
+      mapZoom = vs.zoom;
+      window.__viewState = {longitude: vs.longitude, latitude: vs.latitude, zoom: vs.zoom};
+      if (view === 'trees' && was !== now && trees) updateMap();
+    },
+  });
+  window.__deck = deckgl; // test hook
+}
+function updateMap(){
+  ensureDeck();
+  const layers = {main: mainLayers, exposure: exposureLayers, wait: waitLayers, trees: treesLayers}[view]();
+  if (view === 'main' || view === 'exposure') layers.push(...selectionLayers());
+  deckgl.setProps({layers});
+}
+
+// ---- legends and texts per view ----
+const key = (mk, text) => `<div class="key"><span class="mk">${mk}</span><span>${text}</span></div>`;
+const rampBlock = (colors, from, to, n=24) =>
+  `<div class="ramp-strip">${Array.from({length: n}, (_, i) => `<span style="background:${rampHex(colors, i/(n-1))}"></span>`).join('')}</div>` +
+  `<div class="ramp-labels"><span>${from}</span><span>${to}</span></div>`;
+const levelKeys = () => [
+  [0, 'Building shadow', '0'], [P.tree_transmissivity, 'Tree shade', PARAM_TEXT.tree],
+  [P.shelter_exposure_factor, 'Sun with shelter', PARAM_TEXT.shelter], [1, 'Full sun', '1'],
+].map(([t, label, val]) => `<div class="key"><span class="swatch" style="background:${rampHex(EXPOSURE_RAMP, t)}"></span><span>${label} (${val})</span></div>`).join('');
+const shadowKey = () => !Object.keys(SHADOW_URLS).length
+  ? `<p class="legend-note">The building-shadow overlay is only in the site version (this single file is kept small).</p>`
+  : key('<i class="shade" style="width:14px;height:10px"></i>', hour === 'avg'
+      ? 'Building shadow (darker = shaded in more of the 7 hours)' : `Building shadow at ${hour}:00`);
+const unstableKey = () => key('<i class="ring" style="width:13px;height:13px"></i>',
+    `dashed ring = the stop's exposure class (low/medium/high) changes with the shelter factor, an uncalibrated assumption (${PARAM_TEXT.shelter}); read it with caution`) +
+  `<label class="toggle-line"><input type="checkbox" id="unstable-toggle" ${showUnstable ? 'checked' : ''}> Mark them</label>`;
+const backdropNote = () => `<div><h3>Backdrop</h3><p class="legend-note" style="margin-top:0">Building footprints from the Copernicus Urban Atlas raster used for the shadow calculation — darker = taller. Not a street map yet: a street basemap is planned.</p></div>`;
+
+function legendHtml(){
+  if (view === 'main'){
+    const labels = classLabels();
+    const sizes = [1, DEP_POS_SORTED[Math.floor(DEP_POS_SORTED.length/2)], DEP_MAX];
+    return `<div><h3>Minutes waiting in the sun</h3>` +
+      CLASS_COLORS.map((c, i) => `<div class="key classes"><span class="swatch" style="background:${c}"></span><span>${labels[i]} min</span></div>`).join('') +
+      `<p class="legend-note">Exposure score × estimated wait, ${hour === 'avg' ? 'averaged over the hours with service' : 'at ' + hour + ':00'}. Five classes with the same number of stop-hours each (quantiles of all stop-hours), so the classes stay the same for every hour.</p></div>` +
+      `<div><h3>Dot size = departures</h3><div class="size-keys">${sizes.map(n => { const d = 2*radiusFor(n); return `<div><i style="width:${d}px;height:${d}px"></i>${n}</div>`; }).join('')}</div>` +
+      `<p class="legend-note">Scheduled departures per hour, all lines (square-root scale).</p></div>` +
+      `<div><h3>Stops without a value</h3>` +
+      key('<i class="hollow" style="width:11px;height:11px"></i>', 'not linked to a GTFS stop') +
+      key('<i class="grey" style="width:6px;height:6px"></i>', 'linked, but no service in this hour') + `</div>` +
+      `<div><h3>Building shadow</h3>${shadowKey()}</div>` +
+      `<div><h3>Shelter-dependent class</h3>${unstableKey()}</div>` + backdropNote();
   }
-}
-
-// KPIs, from main.json only: available before the trees load.
-function renderTreesStats(){
-  const el = document.getElementById('trees-stats');
-  const stops = MAIN_DATA.stops;
-  const high = stops.filter(d => d.s.reduce((a,b)=>a+b,0) >= 5);
-  const noTrees = high.filter(d => d.nt === 0).length;
-  const withShade = stops.filter(d => d.ts > 0).length;
-  const items = [
-    {n: MAIN_DATA.trees.n.toLocaleString('en-US'), l:'Municipal trees mapped (plausible height and crown)'},
-    {n: MAIN_DATA.trees.shading.toLocaleString('en-US'), l:'Trees whose crown shades a stop'},
-    {n: withShade.toLocaleString('en-US') + ' (' + (100*withShade/stops.length).toFixed(0) + '%)', l:'Stops with tree-crown shade in at least one hour'},
-    {n: noTrees.toLocaleString('en-US') + ' vs ' + (high.length - noTrees).toLocaleString('en-US'), l:'Highly exposed stops (score sum \u2265 5 of 7) with no tree within 20 m vs with at least one'},
-  ];
-  el.innerHTML = items.map(s => `<div class="stat"><span class="n">${s.n}</span><span class="l">${s.l}</span></div>`).join('');
-}
-function renderTreeRampStrip(){
-  const strip = document.getElementById('tree-ramp-strip');
-  strip.innerHTML = '';
-  for (let h=1; h<=TREE_HEIGHT_CAP; h++){
-    const s = document.createElement('span');
-    s.style.background = rgbToHex(...TREE_LUT[h]);
-    strip.appendChild(s);
+  if (view === 'exposure'){
+    const avg = hour === 'avg';
+    return `<div><h3>${avg ? 'Sun-exposure score (0–7)' : `Sun-exposure score at ${hour}:00`}</h3>` +
+      rampBlock(EXPOSURE_RAMP, avg ? '0' : '0 (shadow)', avg ? '7' : '1 (full sun)') +
+      `<div style="margin-top:8px">${levelKeys()}</div>` +
+      `<p class="legend-note">${avg
+        ? `Colour = mean of the hourly score, 13:00–19:00 (the tooltip gives the sum, 0–7).`
+        : `Weighted score at this hour.`} 0 = building shadow, ${PARAM_TEXT.tree} = shadow of a tree crown (${PARAM_TEXT.tree_pct} of the sun gets through), ${PARAM_TEXT.shelter} = direct sun with a shelter, 1 = full sun, no shelter. Tree shade is so close to 0 that its colour is the building-shadow one: the tooltip tells them apart.</p></div>` +
+      `<div><h3>Building shadow</h3>${shadowKey()}</div>` +
+      `<div><h3>Shelter-dependent class</h3>${unstableKey()}</div>` +
+      `<div><h3>Weather source</h3>${key('<i class="station" style="width:11px;height:11px"></i>', 'ARPA Lombardia station used for the critical-hours analysis; hover for its % of readings &gt;30°C')}` +
+      `<label class="toggle-line"><input type="checkbox" id="stations-toggle" ${showStations ? 'checked' : ''}> Show weather stations</label></div>` + backdropNote();
   }
-  document.getElementById('tree-cap-label').textContent = TREE_HEIGHT_CAP + '+ m';
+  if (view === 'wait'){
+    return `<div><h3>${hour === 'avg' ? 'Estimated wait, average (min)' : `Estimated wait at ${hour}:00 (min)`}</h3>` +
+      rampBlock(WAIT_RAMP, '0', WAIT_CAP_MIN + '+') +
+      `<p class="legend-note">Mixed-model central estimate, capped at ${WAIT_CAP_MIN} min for colour: a few low-frequency stops wait much longer, and letting them set the scale would wash out the difference between everyone else.</p></div>` +
+      `<div><h3>Stops without a value</h3>${key('<i class="grey" style="width:6px;height:6px"></i>', 'no service in this hour')}</div>` +
+      `<div class="legend-note">${nfmt(WAIT.length)} GTFS stops (metro, tram, bus): a larger, differently-sourced set than the ${nfmt(MAIN.stops.length)} OSM stops of the other views.</div>` + backdropNote();
+  }
+  return `<div><h3>Tree height</h3>${rampBlock(TREE_RAMP, '1 m', TREE_HEIGHT_CAP + '+ m', 30)}` +
+    `<p class="legend-note">Dot radius = half the crown diameter, in meters on the ground.</p></div>` +
+    `<div><h3>Highlights</h3>` +
+    key('<i style="width:12px;height:12px;background:#31A354;border:2px solid #1A1A1A"></i>', 'tree whose crown shades a stop') +
+    key('<i style="width:12px;height:12px;background:#1D5C63;border:1.5px solid #1A1A1A"></i>', 'stop with tree-crown shade') +
+    key('<i style="width:12px;height:12px;background:#fff;border:1.5px solid #1A1A1A"></i>', 'stop without') + `</div>` +
+    (treesPartialHtml ? `<div class="legend-note">${treesPartialHtml}</div>` : '') + backdropNote();
 }
-renderTreesStats();
-renderTreeRampStrip();
 
-// ==== Shared view + hour controls ====
-const VIEW_PANELS = {
-  main: document.getElementById('view-panel-main'),
-  exposure: document.getElementById('view-panel-exposure'),
-  wait: document.getElementById('view-panel-wait'),
-  trees: document.getElementById('view-panel-trees'),
+function viewDescription(){
+  if (view === 'main'){
+    return `Each dot is a bus or tram stop. Colour = estimated minutes of waiting in direct sun (sun-exposure score × estimated wait) in the selected hour, in five classes with as many stop-hours each; the legend gives the real minutes. Dot size = scheduled departures in that hour. The blue-grey tint is the shadow cast by buildings at the selected hour (average: all seven hours superimposed). Dashed rings mark stops whose class depends on the shelter factor. Hollow grey circles are OSM stops not linked to a GTFS stop, so there is no wait for them; small grey dots have no service in the hour.`;
+  }
+  if (view === 'exposure'){
+    return `Each dot is a bus or tram stop, coloured by how exposed to direct sun it is in the selected hour: from full building shadow to full sun (the average is the mean over 13:00–19:00; the tooltip gives the 0–7 sum). The tint is the shadow cast by buildings at that hour. Hover a dot for the seven hours of that stop.`;
+  }
+  if (view === 'wait'){
+    return `Estimated wait per stop, per hour, from a mixed model: some riders arrive at random (wait = half the headway) and a share of them time their arrival to the timetable, up to ${PARAM_TEXT.sync_pct} of riders when the headway is ${PARAM_TEXT.sync_full} min or more. Hover a stop for the low–high range (all lines combined vs. the least frequent line) and the seven hours. Same day as the exposure view, Sunday June 28, 2026 (ATM GTFS feed v417), 13:00–19:00 CEST. A separate dataset (${nfmt(WAIT.length)} GTFS stops vs. ${nfmt(MAIN.stops.length)} OSM stops): the two are joined in the dbt layer (mart_stop_heat_wait_hourly), not on the map.`;
+  }
+  return `Every municipal tree in the Comune di Milano census (ds2484, 31 March 2025) that has a plausible height and crown, drawn as a dot the size of its crown and coloured by height. Trees whose crown shades at least one stop in at least one hour of 13:00–19:00 have a dark outline. Stops sit on top; those with tree-crown shade in at least one hour are filled teal. Zoom in to hover a tree. Only municipal trees are in the census: private trees are missing, so tree shade is underestimated. Heatmap = density of crown area.`;
+}
+
+// ---- priority panel ----
+function topStops(h){
+  return MAIN.stops.map(d => [d, exposedAt(d, h)]).filter(([, v]) => v !== null)
+    .sort((a, b) => b[1] - a[1] || (depsAt(b[0], h) || 0) - (depsAt(a[0], h) || 0) || (a[0].id < b[0].id ? -1 : 1))
+    .slice(0, 20);
+}
+function renderPriority(){
+  const box = document.getElementById('priority');
+  box.hidden = view !== 'main';
+  if (view !== 'main') return;
+  document.getElementById('priority-title').textContent =
+    `Priority stops — top 20 by minutes waiting in the sun (${hour === 'avg' ? 'average' : hour + ':00'})`;
+  const list = document.getElementById('priority-list');
+  list.innerHTML = topStops(hour).map(([d, v], i) =>
+    `<li><button type="button" data-id="${escapeHtml(String(d.id))}"${d.id === selectedId ? ' aria-current="true"' : ''}>` +
+    `<span class="rank">${i+1}.</span><span class="nm">${nameOf(d)}</span><span class="val">${fmtMin(v)} min</span></button></li>`).join('');
+}
+document.getElementById('priority-list').addEventListener('click', e => {
+  const b = e.target.closest('button[data-id]');
+  if (!b) return;
+  const d = MAIN.stops.find(s => s.id === b.dataset.id);
+  if (!d) return;
+  selectedId = d.id;
+  renderPriority();
+  updateMap();
+  deckgl.setProps({initialViewState: {
+    longitude: d.lo, latitude: d.la, zoom: Math.max(15.5, mapZoom), pitch: 0, bearing: 0,
+    transitionDuration: 700, transitionInterpolator: new deck.FlyToInterpolator(),
+  }});
+  if (compact()) document.getElementById('map-holder').scrollIntoView({behavior: 'smooth', block: 'center'});
+});
+
+// ---- sun compass (main and exposure views) ----
+// Solar azimuth/elevation for Milan, June 28 2026: the values solar_exposure.py
+// prints for each hour (the same ones render_shadow_layers.py uses).
+// Azimuth: degrees clockwise from North; high sun sits near the centre.
+const SUN_POSITIONS = {
+  13: {azimuth:164.1, elevation:67.2}, 14: {azimuth:199.8, elevation:66.8}, 15: {azimuth:228.3, elevation:60.8},
+  16: {azimuth:247.5, elevation:51.9}, 17: {azimuth:261.2, elevation:41.8}, 18: {azimuth:272.4, elevation:31.3},
+  19: {azimuth:282.4, elevation:20.9},
 };
-let currentView = 'main';
-function renderActiveView(){
-  // the Trees view does not depend on the hour
-  const hourless = currentView === 'trees';
+const SUN_CX = 70, SUN_CY = 70, SUN_R = 54;
+function sunXY(azimuth, elevation){
+  const r = SUN_R * (1 - elevation/90);
+  const rad = (azimuth-90) * Math.PI/180;
+  return [SUN_CX + r*Math.cos(rad), SUN_CY + r*Math.sin(rad)];
+}
+function renderSunCompass(){
+  const box = document.getElementById('compass-box');
+  box.hidden = !(view === 'main' || view === 'exposure');
+  if (box.hidden) return;
+  const svg = document.getElementById('sun-compass');
+  svg.innerHTML = '';
+  const ns = 'http://www.w3.org/2000/svg';
+  const add = (tag, attrs, text) => {
+    const el = document.createElementNS(ns, tag);
+    Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+    if (text) el.textContent = text;
+    svg.appendChild(el);
+  };
+  [0,30,60].forEach(el => add('circle', {cx: SUN_CX, cy: SUN_CY, r: SUN_R * (1 - el/90), class: 'ring'}));
+  [['N',0,-1],['E',1,0],['S',0,1],['W',-1,0]].forEach(([label,dx,dy]) =>
+    add('text', {x: SUN_CX + dx*(SUN_R+10), y: SUN_CY + dy*(SUN_R+10) + 3, 'text-anchor': 'middle', class: 'cardinal'}, label));
+  const pts = HOURS.map(h => sunXY(SUN_POSITIONS[h].azimuth, SUN_POSITIONS[h].elevation));
+  add('path', {d: pts.map((p,i)=>(i===0?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' '), class: 'path'});
+  pts.forEach(p => add('circle', {cx: p[0].toFixed(1), cy: p[1].toFixed(1), r: 2, class: 'sun-dim'}));
+  const active = hour === 'avg' ? 15 : hour;
+  const pos = SUN_POSITIONS[active];
+  const [sx, sy] = sunXY(pos.azimuth, pos.elevation);
+  add('circle', {cx: sx.toFixed(1), cy: sy.toFixed(1), r: 7, fill: '#F2B84B', opacity: 0.25});
+  add('circle', {cx: sx.toFixed(1), cy: sy.toFixed(1), r: 4.5, class: 'sun'});
+  document.getElementById('sun-title').textContent = hour === 'avg' ? 'Sun position (15:00 shown)' : `Sun position at ${hour}:00`;
+  document.getElementById('sun-note').textContent =
+    `Azimuth ${pos.azimuth.toFixed(0)}°, elevation ${pos.elevation.toFixed(0)}° above the horizon — centre is overhead, the rim is the horizon. This is what drives the shadow overlay.`;
+}
+
+// ---- controls ----
+const VIEWS = [
+  {v:'main', label:'Sun × wait'}, {v:'exposure', label:'Exposure'}, {v:'wait', label:'Wait'}, {v:'trees', label:'Trees'},
+];
+const HOUR_OPTS = [{v:'avg', label:'Average'}, ...HOURS.map(h => ({v:h, label:`${h}:00`}))];
+function makeButtons(containerId, opts, isActive, onPick){
+  const c = document.getElementById(containerId);
+  opts.forEach(o => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = o.label; b.className = isActive(o.v) ? 'active' : '';
+    b.addEventListener('click', () => {
+      [...c.children].forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      onPick(o.v);
+    });
+    c.appendChild(b);
+  });
+}
+makeButtons('view-buttons', VIEWS, v => v === view, v => { view = v; renderAll(); });
+makeButtons('hour-buttons', HOUR_OPTS, v => v === hour, v => { hour = v; renderAll(); });
+const heatBtn = document.getElementById('heat-toggle');
+heatBtn.addEventListener('click', () => {
+  heat = !heat;
+  heatBtn.setAttribute('aria-pressed', String(heat));
+  updateMap();
+});
+// checkboxes live in the legend, which is re-rendered: delegate
+document.getElementById('legend-body').addEventListener('change', e => {
+  if (e.target.id === 'unstable-toggle') showUnstable = e.target.checked;
+  else if (e.target.id === 'stations-toggle') showStations = e.target.checked;
+  else return;
+  updateMap();
+});
+
+function renderAll(){
+  const hourless = view === 'trees'; // the tree census does not depend on the hour
   document.getElementById('hour-label').hidden = hourless;
   document.getElementById('hour-buttons').hidden = hourless;
-  if (currentView === 'trees'){
-    openTreesView();
-  } else if (currentView === 'main'){
-    updateMainLayers();
-  } else if (currentView === 'exposure'){
-    mode = sharedHour;
-    updateLegend();
-    renderSunCompass();
-    renderCurrentDisplay();
-  } else if (currentView === 'wait'){
-    waitMode = sharedHour;
-    document.getElementById('wait-legend-title').textContent =
-      waitMode === 'avg' ? 'Estimated wait, avg 13:00–19:00 (min)' : `Estimated wait at ${waitMode}:00 (min)`;
-    renderWaitMap();
-  }
+  document.getElementById('view-desc').textContent = viewDescription();
+  document.getElementById('trees-stats').hidden = !hourless;
+  document.getElementById('legend-body').innerHTML = legendHtml();
+  renderSunCompass();
+  renderPriority();
+  if (view === 'trees') loadTreesOnce();
+  mapStatus.hidden = !(view === 'trees' && (treesState === 'loading' || treesState === 'error'));
+  updateMap();
+  window.__view = view;
 }
 
-const VIEWS = [
-  {v:'main', label:'Sun × wait'},
-  {v:'exposure', label:'Exposure'},
-  {v:'wait', label:'Wait'},
-  {v:'trees', label:'Trees'},
-];
-const viewButtons = document.getElementById('view-buttons');
-VIEWS.forEach(vw=>{
-  const b = document.createElement('button');
-  b.textContent = vw.label;
-  b.className = vw.v === currentView ? 'active' : '';
-  b.addEventListener('click', ()=>{
-    currentView = vw.v;
-    [...viewButtons.children].forEach(btn=>btn.classList.remove('active'));
-    b.classList.add('active');
-    Object.entries(VIEW_PANELS).forEach(([k, el])=>{ el.hidden = k !== currentView; });
-    renderActiveView();
-  });
-  viewButtons.appendChild(b);
-});
-
-let sharedHour = 'avg'; // 'avg' | 13..19 -- drives whichever view is active
-const HOUR_OPTS = [
-  {v:'avg', label:'Average'},
-  {v:13, label:'13:00'}, {v:14, label:'14:00'}, {v:15, label:'15:00'},
-  {v:16, label:'16:00'}, {v:17, label:'17:00'}, {v:18, label:'18:00'}, {v:19, label:'19:00'},
-];
-const hourButtons = document.getElementById('hour-buttons');
-HOUR_OPTS.forEach(h=>{
-  const b = document.createElement('button');
-  b.textContent = h.label;
-  b.className = h.v === sharedHour ? 'active' : '';
-  b.addEventListener('click', ()=>{
-    sharedHour = h.v;
-    [...hourButtons.children].forEach(btn=>btn.classList.remove('active'));
-    b.classList.add('active');
-    renderActiveView();
-  });
-  hourButtons.appendChild(b);
-});
-
-// ---- stats ----
-// All computed from the embedded MAIN_DATA (main.json), not hand-written --
-// see contract/map_data.md / mart_stop_heat_risk.sql for exposure_score_hours
-// and mart_stop_heat_wait.sql for the avg_exposed_wait_minutes this KPI
-// approximates from the hourly data actually embedded in the page.
-const total = MAIN_DATA.stops.length;
-const highRiskStops = MAIN_DATA.stops.filter(d => d.s.reduce((a,b)=>a+b,0) >= 5);
-const linkedStops = MAIN_DATA.stops.filter(d => d.w.some(v => v !== null));
-
+// ---- KPIs, all computed from the embedded data ----
 function median(arr){
   const sorted = [...arr].sort((a,b)=>a-b);
   const mid = Math.floor(sorted.length/2);
   return sorted.length % 2 ? sorted[mid] : (sorted[mid-1]+sorted[mid])/2;
 }
-// Per high-risk stop, the mean of (exposure_score x wait_minutes) over the
-// hours that actually have wait data -- mirrors mart_stop_heat_wait.sql's
-// avg_exposed_wait_minutes, computed here from the same per-hour values
-// shipped in main.json rather than duplicating the dbt mart's own (single,
-// hour-collapsed) median_wait_13_19 term.
-const highRiskExposedWait = highRiskStops
-  .map(d => {
-    const hours = d.s.map((s,i)=> d.w[i]!==null ? s*d.w[i] : null).filter(v=>v!==null);
-    return hours.length ? hours.reduce((a,b)=>a+b,0)/hours.length : null;
-  })
-  .filter(v => v !== null);
+const total = MAIN.stops.length;
+const highRiskStops = MAIN.stops.filter(d => d.s.reduce((a,b)=>a+b,0) >= 5);
+const linkedStops = MAIN.stops.filter(d => !d.u);
+// Per high-risk stop, the mean of the mart's exposed_wait_minutes over the hours with wait data.
+const highRiskExposedWait = highRiskStops.map(d => mean(d.x)).filter(v => v !== null);
 const medianExposedWait = highRiskExposedWait.length ? median(highRiskExposedWait) : null;
-
-const unstableStops = MAIN_DATA.stops.filter(d => !d.st);
+const unstableStops = MAIN.stops.filter(d => !d.st);
 const stats = [
-  {n: total.toLocaleString('en-US'), l:'Stops mapped'},
-  {n: '13:00\u201319:00', l:'Window studied (Jun 28, 2026)'},
-  {n: highRiskStops.length.toLocaleString('en-US') + ' (' + (100*highRiskStops.length/total).toFixed(0) + '%)', l:'Highly sun-exposed stops (exposure score sum \u2265 5 of 7)'},
-  {n: medianExposedWait !== null ? medianExposedWait.toFixed(1) + ' min' : '\u2014', l:'Median sun-exposed waiting minutes per hour, highly exposed stops'},
-  {n: unstableStops.length.toLocaleString('en-US') + ' (' + (100*unstableStops.length/total).toFixed(0) + '%)', l:'Stops whose class depends on the shelter factor'},
-  {n: linkedStops.length.toLocaleString('en-US') + ' (' + (100*linkedStops.length/total).toFixed(0) + '%)', l:'Linked to GTFS wait data'},
+  {n: nfmt(total), l:'Stops mapped'},
+  {n: '13:00–19:00', l:'Window studied (Jun 28, 2026)'},
+  {n: nfmt(highRiskStops.length) + ' (' + (100*highRiskStops.length/total).toFixed(0) + '%)', l:'Highly sun-exposed stops (exposure score sum ≥ 5 of 7)'},
+  {n: medianExposedWait !== null ? medianExposedWait.toFixed(1) + ' min' : '—', l:'Median sun-exposed waiting minutes per hour, highly exposed stops'},
+  {n: nfmt(unstableStops.length) + ' (' + (100*unstableStops.length/total).toFixed(0) + '%)', l:'Stops whose class depends on the shelter factor'},
+  {n: nfmt(linkedStops.length) + ' (' + (100*linkedStops.length/total).toFixed(0) + '%)', l:'Linked to GTFS wait data'},
 ];
-const statsEl = document.getElementById('stats');
-stats.forEach(s=>{
-  const d = document.createElement('div'); d.className='stat';
-  d.innerHTML = `<span class="n">${s.n}</span><span class="l">${s.l}</span>`;
-  statsEl.appendChild(d);
-});
+const statHtml = items => items.map(s => `<div class="stat"><span class="n">${s.n}</span><span class="l">${s.l}</span></div>`).join('');
+document.getElementById('stats').innerHTML = statHtml(stats);
+{
+  const withShade = MAIN.stops.filter(d => d.ts > 0).length;
+  const noTrees = highRiskStops.filter(d => d.nt === 0).length;
+  document.getElementById('trees-stats').innerHTML = statHtml([
+    {n: nfmt(MAIN.trees.n), l:'Municipal trees mapped (plausible height and crown)'},
+    {n: nfmt(MAIN.trees.shading), l:'Trees whose crown shades a stop'},
+    {n: nfmt(withShade) + ' (' + (100*withShade/total).toFixed(0) + '%)', l:'Stops with tree-crown shade in at least one hour'},
+    {n: nfmt(noTrees) + ' vs ' + nfmt(highRiskStops.length - noTrees), l:'Highly exposed stops (score sum ≥ 5 of 7) with no tree within 20 m vs with at least one'},
+  ]);
+}
 
-updateLegend();
-renderRampStrip();
-renderSunCompass();
-renderCurrentDisplay();
-renderMainRampStrip();
-ensureDeck();
-updateMainLayers();
-
-window.addEventListener('resize', ()=>{ if (display==='heatmap' || display==='grid') renderHeatmapCanvas(display==='grid'); });
+renderAll();
+window.addEventListener('resize', () => { renderAll(); });
 }
 </script>
 </body>
