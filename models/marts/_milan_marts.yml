@@ -17,6 +17,17 @@ models:
           - accepted_values:
               arguments:
                 values: ["low", "medium", "high"]
+      - name: exposure_decile
+        description: Decile (1-10) of exposure_score_hours across stops, 10 = most exposed.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      - name: risk_level_stable
+        description: true if risk_level is the same for every shelter factor in var shelter_factor_grid.
+        tests:
+          - not_null
 
   - name: mart_stop_heat_wait_hourly
     columns:
@@ -60,6 +71,17 @@ models:
           - accepted_values:
               arguments:
                 values: ["low", "medium", "high"]
+      - name: exposure_decile
+        description: Of the stop (see mart_stop_heat_risk), 1-10.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      - name: risk_level_stable
+        description: Of the stop (see mart_stop_heat_risk).
+        tests:
+          - not_null
 
   - name: mart_stop_heat_wait
     columns:
@@ -82,3 +104,49 @@ models:
           - accepted_values:
               arguments:
                 values: ["ref", "nearest", "unmatched"]
+
+  - name: mart_stop_heat_risk_sensitivity
+    description: >
+      risk_level per stop and shelter factor (var shelter_factor_grid). Factor > 1 =
+      closed shelter that worsens heat stress (Lanza et al. 2025).
+    columns:
+      - name: osm_node_id
+        tests:
+          - not_null
+      - name: shelter_factor
+        tests:
+          - not_null
+      - name: exposure_score_hours
+        tests:
+          - not_null
+      - name: risk_level
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["low", "medium", "high"]
+
+  - name: mart_heat_wait_sensitivity
+    description: >
+      Per sync_share_max (var sync_share_grid) and risk_level: stops, median and p90
+      of avg_exposed_wait_minutes (minutes of wait in direct sun, not a thermal
+      stress index) with the mixed wait recomputed for that sync_share_max.
+    columns:
+      - name: sync_share_max
+        tests:
+          - not_null
+      - name: risk_level
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["low", "medium", "high"]
+      - name: n_stops
+        tests:
+          - not_null
+      - name: median_avg_exposed_wait_minutes
+        tests:
+          - not_null
+      - name: p90_avg_exposed_wait_minutes
+        tests:
+          - not_null

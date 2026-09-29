@@ -26,3 +26,8 @@ vars:
   # Assumptions, not measured values.
   sync_share_max: 0.5      # max share of riders who time arrival to the timetable
   sync_wait_minutes: 2     # wait of those riders, capped at headway/2
+
+  # Sensitivity grids (T13, docs/MILAN_DATA_DECISIONS.md sections 6 and 7.1).
+  # Shelter factor > 1 = closed shelter that worsens heat stress (Lanza et al. 2025).
+  shelter_factor_grid: [0, 0.25, 0.5, 0.75, 1.0, 1.2]
+  sync_share_grid: [0, 0.25, 0.5, 0.6]

@@ -258,6 +258,26 @@ Output seed: `data_milan/seeds/stop_solar_exposure.csv` (columns: stop_id,
 hour, solar_azimuth, solar_elevation, in_building_shadow, has_shelter,
 exposed).
 
+### 6.1 Sensitività al fattore pensilina (T13)
+
+La metrica corretta è **minuti di attesa al sole diretto**, non un indice di
+stress termico: il modello conta ombra, pensilina e sole, non temperatura
+dell'aria, umidità né irraggiamento riflesso. `shelter_exposure_factor` (0,5)
+è una scelta, non una misura, quindi `mart_stop_heat_risk_sensitivity` ricalcola
+`exposure_score_hours` e `risk_level` per ogni fattore in `shelter_factor_grid`
+(0; 0,25; 0,5; 0,75; 1; 1,2), stesse soglie (high >= 5, low <= 1). Un fattore
+> 1 rappresenta una pensilina chiusa che peggiora lo stress rispetto al sole
+aperto (ritenzione di calore e radiazione riflessa: Lanza et al. 2025; anche
+Ernst, Watkins e Chen 2025, Transportation Research Part D 140, 104653).
+
+Fermate con `risk_level` alto: 941 con fattore 0, 941 con 0,5, 2.212 con 1 e
+con 1,2 (basso: 1.657, 155, 89 e 73). **1.347 fermate (46%) restano nella stessa
+classe per ogni fattore, 1.584 (54%) no**; tra fattore 0 e 1,2 cambiano classe
+tutte e 1.584 le instabili (la classe è monotona nel fattore). Le colonne
+`risk_level_stable` e `exposure_decile` (10 = più esposte, decili di
+`exposure_score_hours`) sono in `mart_stop_heat_risk` e nei mart che ne derivano.
+Le fermate instabili "dipendono dalla pensilina" e vanno lette con cautela.
+
 ## Still open
 
 - ~~Whether shelter and building shadow should be read separately~~ —
@@ -365,6 +385,20 @@ stop-ora del mart). Il 93,8% delle stop-ora ha H ≥ 11 min, cioè s = s_max:
 di domenica pomeriggio il servizio è raro, quindi il risultato dipende molto
 da `sync_share_max`. `avg_exposed_wait_minutes` mediano per le fermate a
 rischio alto: 5,25 min (era 8,6 con l'attesa casuale).
+
+**Sensitività a `sync_share_max`** (`mart_heat_wait_sensitivity`, misto
+ricalcolato con `sync_share_grid`; mediana / p90 di `avg_exposed_wait_minutes`,
+minuti di attesa al sole diretto, non un indice di stress termico):
+
+| sync_share_max | alto (795 fermate) | medio (1.692) | basso (140) |
+|---|---|---|---|
+| 0 | 8,61 / 11,41 | 3,96 / 5,88 | 1,18 / 1,64 |
+| 0,25 | 6,91 / 9,06 | 3,21 / 4,66 | 0,96 / 1,30 |
+| 0,5 (default) | 5,25 / 6,71 | 2,44 / 3,43 | 0,73 / 0,96 |
+| 0,6 | 4,59 / 5,76 | 2,15 / 2,97 | 0,64 / 0,83 |
+
+Il valore cambia di circa il 47% fra 0 e 0,6 per il rischio alto: l'ordine dei
+livelli resta, ma l'entità assoluta dipende da un'ipotesi.
 
 ## 8. dbt layer
 

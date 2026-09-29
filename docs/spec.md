@@ -42,7 +42,7 @@ Ogni assunzione è dichiarata, non nascosta; i limiti sono parte del risultato.
 ## Output
 **Tabelle dbt** (DuckDB `gtfs.duckdb`)
 - Valencia: `dim_agency`, `dim_route`, `dim_stop`, `dim_date`, `fct_trips`, `fct_stop_times`, `mart_service_frequency`, `mart_stop_coverage`.
-- Milano: `mart_stop_heat_risk` (rischio calore per fermata), `int_stop_wait_time` (attesa per fermata e ora), `int_osm_gtfs_stop_bridge` (collegamento degli ID), `mart_stop_heat_wait` (calore × attesa per fermata).
+- Milano: `mart_stop_heat_risk` (rischio calore per fermata), `int_stop_wait_time` (attesa per fermata e ora), `int_osm_gtfs_stop_bridge` (collegamento degli ID), `mart_stop_heat_wait` (calore × attesa per fermata), `mart_stop_heat_risk_sensitivity` (classe di rischio per fattore pensilina), `mart_heat_wait_sensitivity` (attesa per `sync_share_max` e classe). Metrica: minuti di attesa al sole diretto, non stress termico.
 
 **Risultati principali (Milano)**
 - 941 fermate su 2.931 ad alto rischio calore (562 con la lettura binaria), 155 a basso rischio.
@@ -51,7 +51,7 @@ Ogni assunzione è dichiarata, non nascosta; i limiti sono parte del risultato.
 
 **Mappa**: `scripts/milan/map/dist/milan_heat_map.html`, pagina HTML autocontenuta (~6 MB: dati, sfondo edifici e deck.gl incorporati). Vista principale 3D **Calore × attesa**: una colonna per fermata, altezza = attesa (tetto 25 min), colore = punteggio di esposizione, ora per ora o media 13–19; sotto-viste Esposizione e Attesa. Legge da dbt (`contract/map_data.md`).
 
-**Test**: data test dbt (unicità, valori ammessi, soglie di distanza, punteggio valido, quota di fermate `unmatched` ≤ 12%, `exposure_score_hours` tra 0 e 7, 7 righe orarie per fermata, `risk_level` coerente con il punteggio) e 12 test pytest sul calcolo dell'ombra.
+**Test**: data test dbt (unicità, valori ammessi, soglie di distanza, punteggio valido, quota di fermate `unmatched` ≤ 12%, `exposure_score_hours` tra 0 e 7, 7 righe orarie per fermata, `risk_level` coerente con il punteggio, 6 righe per fermata nella sensitività pensilina, decili 1–10, 12 righe nella sensitività attesa coerenti col mart principale) e 12 test pytest sul calcolo dell'ombra.
 
 ## Fuori scope (per ora)
 Più giorni oltre il 28 giugno; alberi; seconda rete milanese (Trenord); mappa stradale di sfondo; aggiornamenti incrementali e orchestratore.

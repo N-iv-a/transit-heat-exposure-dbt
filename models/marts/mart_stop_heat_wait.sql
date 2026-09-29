@@ -26,7 +26,9 @@ with heat_risk as (
         pct_hours_exposed_binary,
         has_shelter,
         risk_level,
-        risk_level_binary
+        risk_level_binary,
+        exposure_decile,
+        risk_level_stable
 
     from {{ ref('mart_stop_heat_risk') }}
 
@@ -76,6 +78,8 @@ select
     hr.has_shelter,
     hr.risk_level,
     hr.risk_level_binary,
+    hr.exposure_decile,
+    hr.risk_level_stable,
     b.gtfs_stop_id,
     b.match_method,
     b.distance_m,

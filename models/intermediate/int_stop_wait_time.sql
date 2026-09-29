@@ -43,13 +43,7 @@ with_share as (
 
     select
         *,
-        case
-            when median_headway_minutes is null then null
-            when median_headway_minutes <= 5 then 0.0
-            when median_headway_minutes < 11
-                then {{ var('sync_share_max', 0.5) }} * (median_headway_minutes - 5) / 6.0
-            else {{ var('sync_share_max', 0.5) }}
-        end as sync_share
+        {{ sync_share('median_headway_minutes', var('sync_share_max', 0.5)) }} as sync_share
 
     from base
 
@@ -59,8 +53,7 @@ mixed as (
 
     select
         *,
-        (1 - sync_share) * median_headway_minutes / 2.0
-          + sync_share * least(median_headway_minutes / 2.0, {{ var('sync_wait_minutes', 2) }})
+        {{ wait_mixed('median_headway_minutes', 'sync_share', var('sync_wait_minutes', 2)) }}
           as wait_mixed_minutes
 
     from with_share

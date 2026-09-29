@@ -60,7 +60,7 @@ wait_time as (
 
 risk as (
 
-    select osm_node_id, risk_level
+    select osm_node_id, risk_level, risk_level_stable, exposure_decile
     from {{ ref('mart_stop_heat_risk') }}
 
 )
@@ -81,7 +81,9 @@ select
     w.wait_least_frequent_minutes as wait_minutes_high,
     w.median_wait_minutes as wait_minutes_random,
     e.exposure_score * w.wait_mixed_minutes as exposed_wait_minutes,
-    r.risk_level
+    r.risk_level,
+    r.exposure_decile,
+    r.risk_level_stable
 
 from exposure e
 inner join shelter_stops s on e.osm_node_id = s.osm_node_id
