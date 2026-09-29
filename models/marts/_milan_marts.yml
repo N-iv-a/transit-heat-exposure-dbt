@@ -44,6 +44,16 @@ models:
           - accepted_values:
               arguments:
                 values: ["ref", "nearest", "unmatched"]
+      - name: wait_minutes
+        description: Central wait, mixed model (random + timetable-synchronised riders). NULL without service.
+      - name: wait_minutes_low
+        description: Lower bound, min(any-line wait, wait_minutes).
+      - name: wait_minutes_high
+        description: Upper bound, headway/2 of the least frequent line.
+      - name: wait_minutes_random
+        description: Old estimate, headway/2 with random arrivals (median across lines).
+      - name: exposed_wait_minutes
+        description: exposure_score * wait_minutes (mixed).
       - name: risk_level
         tests:
           - not_null

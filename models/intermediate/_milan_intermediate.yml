@@ -12,7 +12,29 @@ models:
           - accepted_values:
               arguments:
                 values: [13, 14, 15, 16, 17, 18, 19]
+      - name: median_wait_minutes
+        description: Old estimate, median headway / 2 (random arrivals).
+      - name: median_headway_minutes
+        description: Median across lines of the per-line median headway, minutes.
+      - name: wait_any_line_minutes
+        description: >
+          Wait for any line, random arrivals on the merged departures of all
+          lines: E[H]/2 * (1 + CV^2). Lower bound.
+      - name: wait_least_frequent_minutes
+        description: Max across lines of headway/2. Upper bound.
+      - name: sync_share
+        description: >
+          Share of riders synchronised to the timetable, 0 to
+          var sync_share_max (0 for H <= 5 min, max for H >= 11 min).
+        tests:
+          - not_null
+      - name: wait_mixed_minutes
+        description: >
+          Central wait estimate, (1-s)*H/2 + s*least(H/2, sync_wait_minutes).
+        tests:
+          - not_null
       - name: wait_time_bucket
+        description: Bucket on wait_mixed_minutes (low < 10, medium < 25, high).
         tests:
           - accepted_values:
               arguments:

@@ -36,7 +36,7 @@ Ogni assunzione è dichiarata, non nascosta; i limiti sono parte del risultato.
 4. **Rischio calore per fermata**: somma dei punteggi sulle 7 ore (0–7); alto ≥ 5, basso ≤ 1, medio altrimenti.
 5. **Attesa per fermata e ora**: per linea, mediana degli intervalli tra partenze nell'ora, divisa per 2; poi mediana tra le linee della fermata; gli intervalli > 3 h (ultime corse) sono esclusi.
 6. **Collegamento OSM ↔ GTFS**: prima `ref` OSM = `stop_id` GTFS (entro 200 m, controllo di coerenza), poi fermata GTFS più vicina entro 30 m (distanza haversine), altrimenti non abbinata.
-7. **Attesa al sole**: per ogni ora punteggio × attesa di quella stessa ora; media sulle ore con servizio = `avg_exposed_wait_minutes`, cioè i minuti medi che un passeggero passa ad aspettare sotto il sole. Stessa definizione in dbt e nella mappa.
+7. **Attesa al sole**: per ogni ora punteggio × attesa di quella stessa ora; media sulle ore con servizio = `avg_exposed_wait_minutes`, cioè i minuti medi che un passeggero passa ad aspettare sotto il sole. L'attesa è il modello misto (arrivi casuali + quota sincronizzata sull'orario, con limiti inferiore e superiore): `docs/MILAN_DATA_DECISIONS.md` §7.1. Stessa definizione in dbt e nella mappa.
 8. **Valencia**: chiavi con prefisso agenzia (`EMT-…`, `GVA-…`); orari oltre le 24:00 gestiti col modulo 24; frequenze aggregate per tipo di giorno, corse per data esatta.
 
 ## Output

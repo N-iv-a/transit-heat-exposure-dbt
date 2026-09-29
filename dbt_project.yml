@@ -20,3 +20,9 @@ models:
       +materialized: view
     marts:
       +materialized: table
+
+vars:
+  # Mixed wait model (int_stop_wait_time, docs/MILAN_DATA_DECISIONS.md section 7).
+  # Assumptions, not measured values.
+  sync_share_max: 0.5      # max share of riders who time arrival to the timetable
+  sync_wait_minutes: 2     # wait of those riders, capped at headway/2

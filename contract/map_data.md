@@ -18,17 +18,22 @@ Grain: una riga per (`osm_node_id`, `hour`), 2.931 fermate × 7 ore = 20.517 rig
 | `exposure_score` | DOUBLE | 0 ombra edificio, `shelter_exposure_factor` (0,5) sole con pensilina, 1 sole senza pensilina |
 | `gtfs_stop_id` | VARCHAR | NULL se non abbinata |
 | `match_method` | VARCHAR | `ref`, `nearest`, `unmatched` |
-| `wait_minutes` | DOUBLE | attesa mediana a quell'ora; NULL se non abbinata o senza servizio in quell'ora |
+| `wait_minutes` | DOUBLE | stima centrale dell'attesa a quell'ora, modello misto (arrivi casuali + quota sincronizzata sull'orario, vedi T12); NULL se non abbinata o senza servizio in quell'ora |
+| `wait_minutes_low` | DOUBLE | limite inferiore: min(attesa per "qualsiasi linea" con le partenze di tutte le linee combinate, stima centrale); NULL come sopra |
+| `wait_minutes_high` | DOUBLE | limite superiore: headway/2 della linea meno frequente; NULL come sopra |
+| `wait_minutes_random` | DOUBLE | vecchia stima, headway/2 con arrivi casuali (mediana tra le linee), per confronto |
 | `exposed_wait_minutes` | DOUBLE | `exposure_score × wait_minutes`; NULL se `wait_minutes` è NULL |
 | `risk_level` | VARCHAR | della fermata (non dell'ora): `low`, `medium`, `high` |
+| `exposure_decile` | INTEGER | della fermata: decile (1–10) di `exposure_score_hours` tra tutte le fermate, 10 = più esposte |
+| `risk_level_stable` | BOOLEAN | della fermata: `true` se `risk_level` è lo stesso per ogni `shelter_exposure_factor` in {0; 0,25; 0,5; 0,75; 1; 1,2} (vedi T13) |
 
 Esposizione e attesa si riferiscono allo stesso giorno, domenica 28/06/2026 (attesa dal feed GTFS ATM versione 417, valido dall'8/06 al 5/07/2026). La finestra 13–19 CEST corrisponde alle ore 12–18 in ora solare dei dati ARPA.
 
 ## `main.int_stop_wait_time` — vista attesa
-Invariata: una riga per (`gtfs_stop_id`, `hour`) con `stop_name`, `lat`, `lon`, `median_wait_minutes`, `n_lines`, `wait_time_bucket`.
+Una riga per (`gtfs_stop_id`, `hour`) con `stop_name`, `lat`, `lon`, `median_wait_minutes` (headway/2 casuale, invariata), `n_lines`, `wait_time_bucket` e in più `median_headway_minutes`, `wait_any_line_minutes`, `wait_least_frequent_minutes`, `wait_mixed_minutes` (stessa definizione di `wait_minutes`, `wait_minutes_low`, `wait_minutes_high` sopra). `wait_time_bucket` si calcola su `wait_mixed_minutes`.
 
 ## Codifica visiva concordata (vista principale)
 - Una colonna 3D per fermata OSM, per l'ora selezionata o la media 13–19.
-- Altezza = `wait_minutes`, tetto a 25 min.
+- Altezza = `wait_minutes` (stima centrale), tetto a 25 min; il tooltip mostra anche l'intervallo `wait_minutes_low`–`wait_minutes_high`.
 - Colore = `exposure_score`: ombra / pensilina al sole / sole pieno.
 - Fermate con `wait_minutes` NULL: punto grigio a terra, senza colonna.

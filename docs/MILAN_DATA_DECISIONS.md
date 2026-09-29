@@ -330,6 +330,42 @@ No building-height backdrop on this map yet (different, larger bounding
 box than the exposure map's OSM stops — the backdrop image would need
 regenerating at that extent, not reused as-is).
 
+### 7.1 Modello misto, limiti inferiore e superiore (T12)
+
+Headway/2 vale solo con arrivi davvero casuali. Con servizi poco frequenti
+molti passeggeri guardano l'orario e arrivano poco prima della corsa, quindi
+l'attesa vera è più bassa. Il seed ora ha, oltre a `median_wait_minutes`
+(invariata, H/2 con H = headway mediano tra le linee):
+`median_headway_minutes` (H), `wait_any_line_minutes` (tutte le partenze di
+tutte le linee alla fermata, ordinate; sugli intervalli consecutivi 0 < H < 3 h
+con prima partenza nell'ora, attesa casuale E[H²]/(2·E[H]) = E[H]/2·(1+CV²),
+Osuna e Newell 1972) e `wait_least_frequent_minutes` (max tra le linee di
+headway/2).
+
+**Modello misto** (`int_stop_wait_time`, Luethi et al. 2007 per l'idea di una
+quota di passeggeri sincronizzati): quota sincronizzata s = 0 per H ≤ 5 min,
+lineare fino a `sync_share_max` per H = 11 min, costante oltre (transizione
+casuale/non casuale tra 5 e 11 min: Singh, Graham, Hörcher, Anderson 2021,
+Transportation Research Part C 130; Ingvardson et al. 2018, Transportation
+Research Part C). Attesa = (1−s)·H/2 + s·min(H/2, `sync_wait_minutes`).
+**Parametri, ipotesi e non misure:** `sync_share_max` = 0,5 e
+`sync_wait_minutes` = 2 min (var dbt in `dbt_project.yml`, modificabili con
+`--vars` per la sensitività). Le fonti danno la forma della transizione, non
+questi due valori.
+
+**Limiti** in `mart_stop_heat_wait_hourly`: `wait_minutes_low` =
+min(attesa qualsiasi linea, misto); `wait_minutes_high` = linea meno frequente;
+`wait_minutes_random` = vecchia stima H/2. Ordine atteso low ≤ misto ≤ random ≤
+high, verificato da un test (tolleranza 0,06 min per l'arrotondamento a un
+decimale di `median_wait_minutes`). `wait_time_bucket` ora si calcola sul misto.
+
+**Numeri** (fermate abbinate, 18.226 stop-ora con servizio): mediana attesa
+casuale 9,0 min contro 5,5 min misto; mediane low 5,3 e high 9,5 (su tutte le
+stop-ora del mart). Il 93,8% delle stop-ora ha H ≥ 11 min, cioè s = s_max:
+di domenica pomeriggio il servizio è raro, quindi il risultato dipende molto
+da `sync_share_max`. `avg_exposed_wait_minutes` mediano per le fermate a
+rischio alto: 5,25 min (era 8,6 con l'attesa casuale).
+
 ## 8. dbt layer
 
 **Ingestion:** `ingestion/load_milan.py`, mirroring `load_gtfs.py`'s

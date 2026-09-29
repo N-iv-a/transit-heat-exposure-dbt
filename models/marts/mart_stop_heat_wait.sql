@@ -5,7 +5,7 @@
 
   avg_exposed_wait_minutes is the average, over the 7 critical hours
   (13:00-19:00 CEST), of exposed_wait_minutes as defined in
-  mart_stop_heat_wait_hourly.sql (exposure_score * median_wait_minutes for
+  mart_stop_heat_wait_hourly.sql (exposure_score * wait_minutes, the mixed model, for
   that hour -- i.e. the same per-hour definition used by the map), ignoring
   hours with no wait data. It's NULL when the stop has no GTFS match
   (match_method = 'unmatched') or none of the 7 hours has wait data.
