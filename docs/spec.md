@@ -51,7 +51,7 @@ Ogni assunzione è dichiarata, non nascosta; i limiti sono parte del risultato.
 
 **Mappa**: `scripts/milan/map/dist/milan_heat_map.html`, pagina HTML autocontenuta (~6 MB: dati, sfondo edifici e deck.gl incorporati). Vista principale 3D **Calore × attesa**: una colonna per fermata, altezza = attesa (tetto 25 min), colore = punteggio di esposizione, ora per ora o media 12–18; sotto-viste Esposizione e Attesa. Legge da dbt (`contract/map_data.md`).
 
-**Test**: data test dbt (unicità, valori ammessi, soglie di distanza, punteggio valido) e 9 test pytest sul calcolo dell'ombra.
+**Test**: data test dbt (unicità, valori ammessi, soglie di distanza, punteggio valido, quota di fermate `unmatched` ≤ 12%, `exposure_score_hours` tra 0 e 7, 7 righe orarie per fermata, `risk_level` coerente con il punteggio) e 9 test pytest sul calcolo dell'ombra.
 
 ## Fuori scope (per ora)
 Più giorni oltre il 28 giugno; alberi; seconda rete milanese (Trenord); mappa stradale di sfondo; aggiornamenti incrementali e orchestratore.
