@@ -2,7 +2,7 @@
 
 Source: Comune di Milano, dataset ds2484 "Alberi - localizzazione"
 (https://dati.comune.milano.it/dataset/ds2484_infogeo_alberi_localizzazione),
-extraction of 2025-03-31. Licence: to be verified on the dataset page.
+extraction of 2025-03-31. Licence: CC BY (checked on the dataset page); attribution in the map footer.
 Only municipal trees are in the census (no private trees).
 
 Input (not versioned, data_milan/raw/ is gitignored):

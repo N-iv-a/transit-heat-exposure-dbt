@@ -14,8 +14,8 @@ option considered.
 ## 1. GTFS (transit schedule data)
 
 **Source:** ATM Milano, via Comune di Milano open data (dataset DS929,
-`dati.comune.milano.it/gtfs.zip`; licence as stated on the DS929 page —
-check it before publishing). The version used is the archived **feed v417**
+`dati.comune.milano.it/gtfs.zip`; licence CC BY, confirmed by the project
+owner on the DS929 page — attribution in the map footer). The version used is the archived **feed v417**
 (`feed_start_date` 2026-06-08, end 2026-07-05, which covers the study day
 June 28), downloaded from the Mobility Database (mobilitydatabase.org,
 source id 2666, snapshot 2026-06-11) into `data_milan/raw/gtfs/` — not
@@ -90,7 +90,7 @@ replacement for it.
 **Incluso**, con una fonte migliore di OSM: censimento alberi del Comune di
 Milano, dataset ds2484 ("Alberi - localizzazione", estrazione 31/03/2025,
 https://dati.comune.milano.it/dataset/ds2484_infogeo_alberi_localizzazione;
-**licenza da verificare** sulla scheda del dataset). 251.165 alberi. Il CSV
+licenza **CC BY**, verificata sulla scheda; attribuzione nel footer della mappa). 251.165 alberi. Il CSV
 grezzo (`data_milan/raw/trees/`, non versionato) è ridotto da
 `scripts/milan/prepare_tree_seed.py` a
 `data_milan/seeds/trees/alberi_milano_20250331.csv.gz` (3,2 MB: tree_id =

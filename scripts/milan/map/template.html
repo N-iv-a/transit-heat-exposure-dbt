@@ -167,7 +167,8 @@
     border-radius:10px; font-size:15px; line-height:1.55; color:var(--text-2);}
   #load-status.error{border-color:#C93A1E; color:var(--text); background:#FFF3EE;}
   #load-status code{font-family:var(--font-mono); font-size:13px;}
-  footer{font-size:12px; color:var(--text-3); text-align:center; padding-top:6px;}
+  footer{font-size:12px; color:var(--text-3); text-align:center; padding-top:6px; line-height:1.6;}
+  footer a{color:var(--text-2);}
 
   @media (max-width:640px){
     .map-row{flex-direction:column;}
@@ -312,7 +313,7 @@
 
   <p class="method-note"><b>Method.</b> Waits use a mixed model: random arrivals plus a share of riders synchronised to the timetable (a parameter, up to <span data-param="sync_pct"></span> for headways of <span data-param="sync_full"></span> min or more), so each stop has a central estimate and a low&ndash;high range. The shelter factor (<span data-param="shelter"></span>) is an assumption, not calibrated: changing it between <span data-param="shelter_min"></span> and <span data-param="shelter_max"></span> moves a large share of stops to another exposure class, which the dashed rings flag. Trees come from the Comune di Milano census (ds2484, 31 March 2025) and include municipal trees only: private trees, and trees in parks or courtyards outside the census, are not counted, so tree shade is underestimated. A crown is modelled as a cylinder (radius = half the crown diameter) and lets <span data-param="tree_pct"></span> of the sun through (<span data-param="tree"></span> in the score; Konarska et al. 2014, 1.3&ndash;5.3%). Details and code: <a href="https://github.com/N-iv-a/transit-heat-exposure-dbt">github.com/N-iv-a/transit-heat-exposure-dbt</a>.</p>
 
-  <footer>Data: ATM Milano GTFS &middot; Comune di Milano tree census (ds2484) &middot; Copernicus Urban Atlas Building Height 2012 &middot; OpenStreetMap &middot; ARPA Lombardia. Built with AI assistance (Claude); modeling choices are the project owner's.</footer>
+  <footer>Data: Comune di Milano Open Data, licensed CC BY &mdash; <a href="https://dati.comune.milano.it/dataset/ds929-orari-del-trasporto-pubblico-locale-nel-comune-di-milano-in-formato-gtfs">ATM/AMAT GTFS timetable (DS929)</a> and <a href="https://dati.comune.milano.it/dataset/ds2484_infogeo_alberi_localizzazione">tree census (ds2484, 31 March 2025)</a> &middot; Building heights: Urban Atlas Building Height 2012, &copy; European Union, Copernicus Land Monitoring Service, European Environment Agency (EEA) &middot; Stops and shelters: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> (ODbL) &middot; Temperatures: <a href="https://www.dati.lombardia.it/Ambiente/Dati-sensori-meteo/647i-nhxk">ARPA Lombardia, dati.lombardia.it</a>. Built with AI assistance (Claude); modeling choices are the project owner's.</footer>
 </div>
 
 <div id="tooltip"></div>
