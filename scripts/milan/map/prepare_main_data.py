@@ -7,7 +7,9 @@ Output `data/main.json`:
       "stops": [
         {"id": ..., "n": ..., "lo": ..., "la": ...,
          "s": [exposure_score x7, hours 13..19],
-         "w": [wait_minutes|null x7, hours 13..19]}
+         "w": [wait_minutes (mixed model, central)|null x7, hours 13..19],
+         "wl": [wait_minutes_low|null x7], "wh": [wait_minutes_high|null x7],
+         "dc": exposure_decile 1..10, "st": risk_level_stable 1/0}
       ]
     }
 
@@ -29,10 +31,15 @@ OUTPUT_JSON = Path(__file__).resolve().parent / "data" / "main.json"
 HOURS = list(range(13, 20))
 
 QUERY = """
-select osm_node_id, stop_name, lon, lat, hour, exposure_score, wait_minutes
+select osm_node_id, stop_name, lon, lat, hour, exposure_score, wait_minutes,
+       wait_minutes_low, wait_minutes_high, exposure_decile, risk_level_stable
 from main.mart_stop_heat_wait_hourly
 order by osm_node_id, hour
 """
+
+
+def _r(v):
+    return round(v, 1) if v is not None else None
 
 
 def main() -> None:
@@ -41,13 +48,17 @@ def main() -> None:
     con.close()
 
     by_stop: dict[str, dict] = {}
-    for osm_node_id, stop_name, lon, lat, hour, exposure_score, wait_minutes in rows:
+    for (osm_node_id, stop_name, lon, lat, hour, exposure_score, wait_minutes,
+         wait_low, wait_high, decile, stable) in rows:
         stop = by_stop.setdefault(
             osm_node_id,
-            {"n": stop_name or "", "lo": lon, "la": lat, "scores": {}, "waits": {}},
+            {"n": stop_name or "", "lo": lon, "la": lat, "scores": {}, "waits": {}, "lows": {}, "highs": {},
+             "dc": decile, "st": stable},
         )
         stop["scores"][hour] = exposure_score
         stop["waits"][hour] = wait_minutes
+        stop["lows"][hour] = wait_low
+        stop["highs"][hour] = wait_high
 
     stops = []
     lons, lats = [], []
@@ -61,10 +72,11 @@ def main() -> None:
                 "lo": round(stop["lo"], 5),
                 "la": round(stop["la"], 5),
                 "s": [round(stop["scores"][hr], 3) for hr in HOURS],
-                "w": [
-                    round(stop["waits"][hr], 2) if stop["waits"][hr] is not None else None
-                    for hr in HOURS
-                ],
+                "w": [_r(stop["waits"][hr]) for hr in HOURS],
+                "wl": [_r(stop["lows"][hr]) for hr in HOURS],
+                "wh": [_r(stop["highs"][hr]) for hr in HOURS],
+                "dc": stop["dc"],
+                "st": 1 if stop["st"] else 0,
             }
         )
 

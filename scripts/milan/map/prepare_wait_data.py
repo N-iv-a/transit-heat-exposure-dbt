@@ -1,7 +1,8 @@
 """Read main.int_stop_wait_time from gtfs.duckdb into the compact per-stop
 JSON the map template embeds (id, n(ame), lo(n), la(t), w(ait minutes per
-hour, 13..19, null where the stop has no service that hour), nl (lines
-observed per hour)). Output format unchanged from the CSV-based version.
+hour, 13..19, = wait_mixed_minutes, null where the stop has no service that
+hour), wl/wh (low = min(wait_any_line_minutes, wait_mixed_minutes), high =
+wait_least_frequent_minutes), nl (lines observed per hour)).
 """
 
 import json
@@ -17,9 +18,14 @@ OUTPUT_JSON = Path(__file__).resolve().parent / "data" / "wait_time.json"
 HOURS = range(13, 20)
 
 QUERY = """
-select gtfs_stop_id, stop_name, lon, lat, hour, median_wait_minutes, n_lines
+select gtfs_stop_id, stop_name, lon, lat, hour, wait_mixed_minutes,
+       wait_any_line_minutes, wait_least_frequent_minutes, n_lines
 from main.int_stop_wait_time
 """
+
+
+def _r(v):
+    return round(v, 1) if v is not None else None
 
 
 def main() -> None:
@@ -29,23 +35,24 @@ def main() -> None:
 
     by_stop = defaultdict(dict)
     meta = {}
-    for stop_id, stop_name, lon, lat, hour, median_wait_minutes, n_lines in rows:
-        by_stop[stop_id][hour] = (median_wait_minutes, n_lines)
+    for stop_id, stop_name, lon, lat, hour, mixed, low, high, n_lines in rows:
+        by_stop[stop_id][hour] = (mixed, low, high, n_lines)
         meta[stop_id] = (stop_name, lon, lat)
 
     records = []
     for stop_id, hours in by_stop.items():
         name, lon, lat = meta[stop_id]
-        w, nl = [], []
+        w, wl, wh, nl = [], [], [], []
         for h in HOURS:
-            if h in hours:
-                w.append(round(hours[h][0], 2) if hours[h][0] is not None else None)
-                nl.append(hours[h][1])
-            else:
-                w.append(None)
-                nl.append(0)
+            m, lo_, hi_, n = hours.get(h, (None, None, None, 0))
+            w.append(_r(m))
+            # same definition as the mart's wait_minutes_low: min(any-line, central)
+            wl.append(_r(min(lo_, m)) if m is not None and lo_ is not None else _r(lo_))
+            wh.append(_r(hi_))
+            nl.append(n)
         records.append(
-            {"id": stop_id, "n": name, "lo": round(lon, 5), "la": round(lat, 5), "w": w, "nl": nl}
+            {"id": stop_id, "n": name, "lo": round(lon, 5), "la": round(lat, 5),
+             "w": w, "wl": wl, "wh": wh, "nl": nl}
         )
 
     OUTPUT_JSON.parent.mkdir(parents=True, exist_ok=True)

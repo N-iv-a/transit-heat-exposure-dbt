@@ -3,18 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Milan Heat Exposure</title>
-<meta name="description" content="Bus and tram stops in Milan scored for sun exposure and waiting time during the hottest hours of June 28, 2026.">
-<meta property="og:title" content="Milan Heat Exposure">
-<meta property="og:description" content="Bus and tram stops in Milan scored for sun exposure and waiting time during the hottest hours of June 28, 2026.">
+<title>Milan: waiting in the sun</title>
+<meta name="description" content="Bus and tram stops in Milan: estimated minutes of waiting in direct sun during the hottest hours of June 28, 2026.">
+<meta property="og:title" content="Milan: waiting in the sun">
+<meta property="og:description" content="Bus and tram stops in Milan: estimated minutes of waiting in direct sun during the hottest hours of June 28, 2026.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://n-iv-a.github.io/transit-heat-exposure-dbt/">
 <meta property="og:image" content="https://n-iv-a.github.io/transit-heat-exposure-dbt/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="627">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Milan Heat Exposure">
-<meta name="twitter:description" content="Bus and tram stops in Milan scored for sun exposure and waiting time during the hottest hours of June 28, 2026.">
+<meta name="twitter:title" content="Milan: waiting in the sun">
+<meta name="twitter:description" content="Bus and tram stops in Milan: estimated minutes of waiting in direct sun during the hottest hours of June 28, 2026.">
 <meta name="twitter:image" content="https://n-iv-a.github.io/transit-heat-exposure-dbt/og.png">
 <style>
   :root{
@@ -134,6 +134,10 @@
   .ramp-labels{display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:11px; color:var(--text-3);}
   .legend-note{font-size:12.5px; color:var(--text-2); line-height:1.5;}
   .shelter-key{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-2);}
+  .unstable-key{width:12px; height:12px; flex:0 0 auto; border-radius:50%; border:1.2px dashed var(--text); opacity:.7; display:inline-block;}
+  svg#map circle.unstable-ring{fill:none; pointer-events:none; cursor:default;}
+  .method-note{font-size:12.5px; color:var(--text-2); line-height:1.55; max-width:80ch; margin:0 auto; text-align:left;}
+  .method-note a{color:var(--accent);}
   .shelter-square{width:10px; height:10px; background:var(--ramp-3); border:1px solid var(--marker-edge); transform:rotate(45deg); flex:0 0 auto;}
 
   #tooltip{
@@ -163,8 +167,8 @@
 <div class="wrap" hidden>
   <header>
     <div class="eyebrow">Transit Heat Exposure &middot; Milano</div>
-    <h1>Milan Heat Exposure</h1>
-    <p class="lede">2,931 bus stops, scored for sun exposure during the hottest documented hours of Milan's hottest summer since 1951 &mdash; June 28, 2026, 13:00&ndash;19:00 CEST (local time; 12:00&ndash;18:00 in the ARPA solar-time data). Exposure score: 0 in building shadow, 0.5 in direct sun with a shelter present (a roof cuts the sun but doesn't cool like real shade), 1 in full sun with no shelter. The main view below crosses this score with how long riders actually wait.</p>
+    <h1>Milan: waiting in the sun</h1>
+    <p class="lede">How many minutes do riders wait in direct sun at Milan's bus and tram stops? For each stop the map combines a sun-exposure score (0 in building shadow, 0.5 in sun with a shelter, 1 in full sun, no shelter) with the estimated wait, over the hottest documented hours of Milan's hottest summer since 1951 &mdash; June 28, 2026, 13:00&ndash;19:00 CEST (12:00&ndash;18:00 in the ARPA solar-time data). The metric is sun-exposed waiting minutes, not a heat-stress index: air temperature and humidity are not modelled.</p>
   </header>
 
   <div class="stats" id="stats"></div>
@@ -178,7 +182,7 @@
     </div>
 
     <div class="view-panel" id="view-panel-main">
-      <p class="lede-small">Each column is a bus/tram stop: its height is the median wait there (capped at 25 min), its color is how exposed to direct sun the stop is in the selected hour(s), from full building shadow to full sun. Stops with no service in the selected hour(s) show as a flat grey point instead of a column.</p>
+      <p class="lede-small">Each column is a bus/tram stop: its height is the estimated wait there (central estimate, capped at 25 min), its color is how exposed to direct sun the stop is in the selected hour(s), from full building shadow to full sun. Hover a column for the wait range and the stop's exposure decile. Stops with no service in the selected hour(s) show as a flat grey point instead of a column.</p>
       <div class="map-row">
         <div class="map-holder" id="deck-holder" style="background-image:none;">
           <div id="deck-container"></div>
@@ -186,7 +190,7 @@
         <div class="legend">
           <div>
             <h3>Column height</h3>
-            <p class="legend-note">Median wait time, capped at 25 min. Flat grey points mark stops with no service in the selected hour(s).</p>
+            <p class="legend-note">Estimated wait (mixed model, central estimate), capped at 25 min; the tooltip also shows the low&ndash;high range. Flat grey points mark stops with no service in the selected hour(s).</p>
           </div>
           <div>
             <h3>Column color</h3>
@@ -217,7 +221,7 @@
             <p class="legend-note" id="sun-note"></p>
           </div>
           <div>
-            <h3 id="legend-title">Exposure score</h3>
+            <h3 id="legend-title">Sun-exposure score</h3>
             <div class="ramp-strip" id="ramp-strip"></div>
             <div class="ramp-labels" id="exposure-ramp-labels"><span>0</span><span>7</span></div>
             <p class="legend-note" id="legend-note">Sum of the weighted exposure score (0 shadow, 0.5 sun with shelter, 1 full sun) over the 7 hours studied (13:00&ndash;19:00).</p>
@@ -225,6 +229,11 @@
           <div>
             <h3>Shelter</h3>
             <div class="shelter-key"><span class="shelter-square"></span> square = stop has a shelter (OSM); circle = it doesn't</div>
+          </div>
+          <div>
+            <h3>Shelter-dependent class</h3>
+            <div class="shelter-key"><span class="unstable-key"></span> dashed ring = the stop's exposure class (low/medium/high) changes with the shelter factor, which is an uncalibrated assumption (0.5). Read these stops with caution.</div>
+            <label class="stations-toggle" style="margin-left:0; margin-top:6px"><input type="checkbox" id="unstable-toggle" checked> Mark them</label>
           </div>
           <div>
             <h3>Weather source</h3>
@@ -240,8 +249,8 @@
 
     <div class="view-panel" id="view-panel-wait" hidden>
       <div class="section-head">
-        <h2>Wait time by stop</h2>
-        <p class="lede-small">Median expected wait per stop, per hour &mdash; headway between scheduled departures on the SAME line, halved, then the median across every line serving that stop (not a combined-schedule shortcut). Same day as the exposure map, Sunday June 28, 2026 (ATM GTFS feed v417), 13:00&ndash;19:00 CEST. A separate dataset from the exposure map (4,246 GTFS stops vs. 2,931 OSM stops) &mdash; the two are joined in the dbt layer (mart_stop_heat_wait_hourly), not in this map, so each is shown on its own projection here.</p>
+        <h2>Estimated wait by stop</h2>
+        <p class="lede-small">Estimated wait per stop, per hour, from a mixed model: some riders arrive at random (wait = half the headway) and a share of them time their arrival to the timetable, up to 50% of riders when the headway is 11 min or more. Hover a stop for the low&ndash;high range (all lines combined vs. the least frequent line). Same day as the exposure map, Sunday June 28, 2026 (ATM GTFS feed v417), 13:00&ndash;19:00 CEST. A separate dataset from the exposure map (4,246 GTFS stops vs. 2,931 OSM stops) &mdash; the two are joined in the dbt layer (mart_stop_heat_wait_hourly), not in this map, so each is shown on its own projection here.</p>
       </div>
       <div class="map-row">
         <div class="map-holder" id="wait-map-holder" style="background-image:none;">
@@ -249,7 +258,7 @@
         </div>
         <div class="legend">
           <div>
-            <h3 id="wait-legend-title">Median wait (min)</h3>
+            <h3 id="wait-legend-title">Estimated wait (min)</h3>
             <div class="ramp-strip" id="wait-ramp-strip"></div>
             <div class="ramp-labels"><span>0</span><span>25+</span></div>
             <p class="legend-note" id="wait-legend-note">Capped at 25 min for color purposes &mdash; a handful of low-frequency stops wait much longer, but letting them set the scale would wash out the difference between everyone else.</p>
@@ -259,6 +268,8 @@
       </div>
     </div>
   </div>
+
+  <p class="method-note"><b>Method.</b> Waits use a mixed model: random arrivals plus a share of riders synchronised to the timetable (a parameter, up to 50% for headways of 11 min or more), so each stop has a central estimate and a low&ndash;high range. The shelter factor (0.5) is an assumption, not calibrated: changing it between 0 and 1.2 moves a large share of stops to another exposure class, which the dashed rings flag. Details and code: <a href="https://github.com/N-iv-a/transit-heat-exposure-dbt">github.com/N-iv-a/transit-heat-exposure-dbt</a>.</p>
 
   <footer>Data: ATM Milano GTFS &middot; Copernicus Urban Atlas Building Height 2012 &middot; OpenStreetMap &middot; ARPA Lombardia. Built with AI assistance (Claude); modeling choices are the project owner's.</footer>
 </div>
@@ -384,6 +395,7 @@ const heatCanvas = document.getElementById('heatmap');
 let mode = 'avg'; // 'avg' | 13..19
 let display = 'points';  // 'points' | 'heatmap'
 let showStations = true;
+let showUnstable = true;
 
 function weightFor(rec){
   // rec.e is the weighted exposure score summed over 13..19 (0-7); rec.h
@@ -468,6 +480,24 @@ function render(){
   });
   pointsG.appendChild(frag);
   svg.appendChild(pointsG);
+
+  if (showUnstable){
+    const ringsG = document.createElementNS('http://www.w3.org/2000/svg','g');
+    ringsG.setAttribute('id','unstable-layer');
+    const rf = document.createDocumentFragment();
+    DATA.forEach(rec=>{
+      if (rec.st) return;
+      const [x,y] = project(rec.lo, rec.la);
+      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('cx', x.toFixed(2)); c.setAttribute('cy', y.toFixed(2)); c.setAttribute('r', 4.6);
+      c.setAttribute('class','unstable-ring');
+      c.setAttribute('stroke','#1A1A1A'); c.setAttribute('stroke-opacity','0.6');
+      c.setAttribute('stroke-width','0.7'); c.setAttribute('stroke-dasharray','1.4 1.2');
+      rf.appendChild(c);
+    });
+    ringsG.appendChild(rf);
+    svg.appendChild(ringsG);
+  }
 
   const stationsG = document.createElementNS('http://www.w3.org/2000/svg','g');
   stationsG.setAttribute('class','station');
@@ -587,9 +617,10 @@ svg.addEventListener('mousemove', (e)=>{
     if (!rec) return;
     const hourLabel = mode === 'avg' ? 'Average, 13:00–19:00' : `${mode}:00`;
     tooltip.innerHTML = `<b>${escapeHtml(rec.n) || 'Unnamed stop'}</b>` +
-      `Exposure score: ${rec.e.toFixed(2)}/7 total<br>` +
+      `Sun-exposure score: ${rec.e.toFixed(2)}/7 total<br>` +
       `At ${hourLabel}: ${weightFor(rec).toFixed(2)}` +
-      (rec.sh ? '<br>Has shelter' : '');
+      (rec.sh ? '<br>Has shelter' : '') +
+      (rec.st ? '' : '<br>Class depends on the shelter factor');
   } else if (t.dataset && t.dataset.station){
     const st = byStation[t.dataset.station];
     if (!st) return;
@@ -695,6 +726,11 @@ displays.forEach(m=>{
   displayButtons.appendChild(b);
 });
 
+document.getElementById('unstable-toggle').addEventListener('change', (e)=>{
+  showUnstable = e.target.checked;
+  renderCurrentDisplay();
+});
+
 document.getElementById('stations-toggle').addEventListener('change', (e)=>{
   showStations = e.target.checked;
   renderCurrentDisplay();
@@ -705,11 +741,11 @@ function updateLegend(){
   const note = document.getElementById('legend-note');
   const labels = document.getElementById('exposure-ramp-labels');
   if (mode === 'avg'){
-    title.textContent = 'Exposure score (0\u20137)';
+    title.textContent = 'Sun-exposure score (0\u20137)';
     note.textContent = 'Sum of the weighted exposure score (0 shadow, 0.5 sun with shelter, 1 full sun) over the 7 hours studied (13:00\u201319:00).';
     labels.innerHTML = '<span>0</span><span>7</span>';
   } else {
-    title.textContent = `Exposure score at ${mode}:00`;
+    title.textContent = `Sun-exposure score at ${mode}:00`;
     note.textContent = 'Weighted exposure score at this hour: 0 = building shadow, 0.5 = direct sun with a shelter present, 1 = full sun, no shelter.';
     labels.innerHTML = '<span>0 (shadow)</span><span>1 (full sun)</span>';
   }
@@ -742,14 +778,15 @@ const waitSvg = document.getElementById('waitmap');
 waitSvg.setAttribute('viewBox', `0 0 ${WAIT_VB_W} ${WAIT_VB_H}`);
 
 let waitMode = 'avg'; // 'avg' | 13..19
-function waitValueFor(rec){
-  if (waitMode === 'avg'){
-    const vals = rec.w.filter(v=>v!==null);
+function seriesAt(arr, hour){
+  if (hour === 'avg'){
+    const vals = arr.filter(v=>v!==null);
     if (!vals.length) return null;
     return vals.reduce((a,b)=>a+b,0)/vals.length;
   }
-  return rec.w[waitMode-13];
+  return arr[hour-13];
 }
+function waitValueFor(rec){ return seriesAt(rec.w, waitMode); }
 function waitColorFor(rec){
   const v = waitValueFor(rec);
   if (v===null || v===undefined) return null;
@@ -777,6 +814,13 @@ function renderWaitMap(){
   waitSvg.appendChild(frag);
 }
 
+// Range suffix for a wait estimate; either bound can be null (no data for
+// that bound at that hour), in which case the range is left out.
+function rangeLabel(lo, hi, unit){
+  if (lo === null || lo === undefined || hi === null || hi === undefined) return '';
+  return ` (range ${lo.toFixed(1)}\u2013${hi.toFixed(1)}${unit})`;
+}
+
 const waitById = Object.fromEntries(WAIT_DATA.map(r=>[r.id, r]));
 waitSvg.addEventListener('mousemove', (e)=>{
   const t = e.target;
@@ -786,7 +830,7 @@ waitSvg.addEventListener('mousemove', (e)=>{
   const v = waitValueFor(rec);
   const hourLabel = waitMode === 'avg' ? 'Average, 13:00–19:00' : `${waitMode}:00`;
   const nl = waitMode === 'avg' ? Math.round(rec.nl.reduce((a,b)=>a+b,0)/Math.max(1,rec.nl.filter(x=>x>0).length)) : rec.nl[waitMode-13];
-  tooltip.innerHTML = `<b>${escapeHtml(rec.n) || 'Unnamed stop'}</b>${hourLabel}<br>Median wait: ${v!==null?v.toFixed(1)+' min':'no service'}${nl?'<br>'+nl+' line(s) observed':''}`;
+  tooltip.innerHTML = `<b>${escapeHtml(rec.n) || 'Unnamed stop'}</b>${hourLabel}<br>Estimated wait: ${v!==null?v.toFixed(1)+' min':'no service'}${v!==null?rangeLabel(seriesAt(rec.wl, waitMode), seriesAt(rec.wh, waitMode), ' min'):''}${nl?'<br>'+nl+' line(s) observed':''}`;
   tooltip.style.left = (e.clientX + 14) + 'px';
   tooltip.style.top = (e.clientY + 14) + 'px';
   tooltip.classList.add('show');
@@ -839,14 +883,7 @@ function scoreForHour(rec, hour){
   if (hour === 'avg') return rec.s.reduce((a,b)=>a+b,0)/rec.s.length;
   return rec.s[hour-13];
 }
-function waitForHourMain(rec, hour){
-  if (hour === 'avg'){
-    const vals = rec.w.filter(v=>v!==null);
-    if (!vals.length) return null;
-    return vals.reduce((a,b)=>a+b,0)/vals.length;
-  }
-  return rec.w[hour-13];
-}
+function waitForHourMain(rec, hour){ return seriesAt(rec.w, hour); }
 
 const MAIN_ELEVATION_SCALE = 20; // meters of column height per minute of wait
 const MAIN_BOUNDS = MAIN_DATA.bounds; // [lonMin, latMin, lonMax, latMax]
@@ -868,8 +905,12 @@ function mainTooltip({object}){
   const wait = waitForHourMain(object, sharedHour);
   return {
     html: `<b>${escapeHtml(object.n) || 'Unnamed stop'}</b>${hourLabel}<br>` +
-      `Exposure: ${wordForScore(score)} (${score.toFixed(2)})<br>` +
-      `Wait: ${wait !== null ? wait.toFixed(1) + ' min' : 'no service'}`,
+      `Sun exposure: ${wordForScore(score)} (${score.toFixed(2)})<br>` +
+      (wait !== null
+        ? `Estimated wait ${wait.toFixed(1)} min${rangeLabel(seriesAt(object.wl, sharedHour), seriesAt(object.wh, sharedHour), '')}`
+        : 'Wait: no service') + '<br>' +
+      `Exposure decile ${object.dc}/10 (10 = most exposed)` +
+      (object.st ? '' : '<br>Class depends on the shelter factor'),
     style: {
       backgroundColor: '#1A1A1A', color: '#FFFFFF',
       fontFamily: 'ui-monospace,SFMono-Regular,"SF Mono",Consolas,monospace',
@@ -974,13 +1015,13 @@ function renderActiveView(){
   } else if (currentView === 'wait'){
     waitMode = sharedHour;
     document.getElementById('wait-legend-title').textContent =
-      waitMode === 'avg' ? 'Median wait, avg 13:00–19:00 (min)' : `Median wait at ${waitMode}:00 (min)`;
+      waitMode === 'avg' ? 'Estimated wait, avg 13:00–19:00 (min)' : `Estimated wait at ${waitMode}:00 (min)`;
     renderWaitMap();
   }
 }
 
 const VIEWS = [
-  {v:'main', label:'Heat × wait'},
+  {v:'main', label:'Sun × wait'},
   {v:'exposure', label:'Exposure'},
   {v:'wait', label:'Wait'},
 ];
@@ -1046,11 +1087,13 @@ const highRiskExposedWait = highRiskStops
   .filter(v => v !== null);
 const medianExposedWait = highRiskExposedWait.length ? median(highRiskExposedWait) : null;
 
+const unstableStops = MAIN_DATA.stops.filter(d => !d.st);
 const stats = [
   {n: total.toLocaleString('en-US'), l:'Stops mapped'},
   {n: '13:00\u201319:00', l:'Window studied (Jun 28, 2026)'},
-  {n: highRiskStops.length.toLocaleString('en-US') + ' (' + (100*highRiskStops.length/total).toFixed(0) + '%)', l:'High heat risk (exposure score sum \u2265 5)'},
-  {n: medianExposedWait !== null ? medianExposedWait.toFixed(1) + ' min' : '\u2014', l:'Median minutes waiting in the sun, high-risk stops'},
+  {n: highRiskStops.length.toLocaleString('en-US') + ' (' + (100*highRiskStops.length/total).toFixed(0) + '%)', l:'Highly sun-exposed stops (exposure score sum \u2265 5 of 7)'},
+  {n: medianExposedWait !== null ? medianExposedWait.toFixed(1) + ' min' : '\u2014', l:'Median sun-exposed waiting minutes per hour, highly exposed stops'},
+  {n: unstableStops.length.toLocaleString('en-US') + ' (' + (100*unstableStops.length/total).toFixed(0) + '%)', l:'Stops whose class depends on the shelter factor'},
   {n: linkedStops.length.toLocaleString('en-US') + ' (' + (100*linkedStops.length/total).toFixed(0) + '%)', l:'Linked to GTFS wait data'},
 ];
 const statsEl = document.getElementById('stats');
