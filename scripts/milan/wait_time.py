@@ -19,6 +19,17 @@ Method (per the project owner's choice — precise over cheap):
      expensive, but answers "how long do I wait for MY bus," which is
      what a rider actually experiences, not "how long until any vehicle."
 
+Extra columns (T12, see docs/MILAN_DATA_DECISIONS.md section 7):
+  - median_headway_minutes: the median across routes of the per-route median
+    headway (median_wait_minutes is this / 2, up to rounding).
+  - wait_any_line_minutes: all departures of all routes at the stop are
+    merged and sorted; over the consecutive intervals H whose first
+    departure falls in the hour, the wait for random arrivals is
+    E[H^2] / (2 E[H]) = E[H]/2 * (1 + CV^2) (Osuna and Newell 1972). Same
+    filters (0 < H < 3 h). Lower bound: a rider who takes any line.
+  - wait_least_frequent_minutes: max across routes of headway/2. Upper
+    bound: a rider who needs the least frequent line.
+
 Gaps longer than 3 hours are dropped before computing the median: those
 are almost always the last trip of the day for a route, not a real
 headway, and would otherwise inflate a low-frequency line's evening wait
@@ -82,6 +93,29 @@ intervals as (
       and next_seconds > total_seconds
       and (next_seconds - total_seconds) < {MAX_GAP_SECONDS}
 ),
+ordered_all as (
+    select
+        stop_id, total_seconds,
+        (raw_hour % 24) as hour_bucket,
+        lead(total_seconds) over (partition by stop_id order by total_seconds) as next_seconds
+    from departures
+),
+intervals_all as (
+    select stop_id, hour_bucket,
+           (next_seconds - total_seconds) as interval_seconds
+    from ordered_all
+    where next_seconds is not null
+      and hour_bucket between 13 and 19
+      and next_seconds > total_seconds
+      and (next_seconds - total_seconds) < {MAX_GAP_SECONDS}
+),
+any_line as (
+    select stop_id, hour_bucket,
+           avg(interval_seconds * interval_seconds::double)
+             / (2.0 * avg(interval_seconds)) / 60.0 as wait_any_line_minutes
+    from intervals_all
+    group by 1, 2
+),
 route_headway as (
     select stop_id, route_id, hour_bucket,
            median(interval_seconds) as headway_seconds
@@ -89,11 +123,15 @@ route_headway as (
     group by 1, 2, 3
 )
 select
-    stop_id,
-    hour_bucket as hour,
-    round(median(headway_seconds) / 2.0 / 60.0, 1) as median_wait_minutes,
-    count(distinct route_id) as n_lines
-from route_headway
+    r.stop_id,
+    r.hour_bucket as hour,
+    round(median(r.headway_seconds) / 2.0 / 60.0, 1) as median_wait_minutes,
+    count(distinct r.route_id) as n_lines,
+    round(median(r.headway_seconds) / 60.0, 2) as median_headway_minutes,
+    round(any_value(a.wait_any_line_minutes), 2) as wait_any_line_minutes,
+    round(max(r.headway_seconds) / 2.0 / 60.0, 2) as wait_least_frequent_minutes
+from route_headway r
+left join any_line a on r.stop_id = a.stop_id and r.hour_bucket = a.hour_bucket
 group by 1, 2
 order by 1, 2
 """
@@ -116,7 +154,8 @@ def main() -> None:
 
     with open(OUTPUT_CSV, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["stop_id", "stop_name", "lat", "lon", "hour", "median_wait_minutes", "n_lines"])
+        writer.writerow(["stop_id", "stop_name", "lat", "lon", "hour", "median_wait_minutes", "n_lines",
+                         "median_headway_minutes", "wait_any_line_minutes", "wait_least_frequent_minutes"])
         n_written = 0
         for row in rows:
             row_d = dict(zip(cols, row))
@@ -126,7 +165,8 @@ def main() -> None:
             name, lat, lon = meta
             # 6 decimals ~ 0.1 m: plenty for a stop, and keeps full-precision
             # 15-decimal floats from tripping the phone-number secrets scanner.
-            writer.writerow([row_d["stop_id"], name, round(lat, 6), round(lon, 6), row_d["hour"], row_d["median_wait_minutes"], row_d["n_lines"]])
+            writer.writerow([row_d["stop_id"], name, round(lat, 6), round(lon, 6), row_d["hour"], row_d["median_wait_minutes"], row_d["n_lines"],
+                             row_d["median_headway_minutes"], row_d["wait_any_line_minutes"], row_d["wait_least_frequent_minutes"]])
             n_written += 1
 
     print(f"Wrote {n_written} rows to {OUTPUT_CSV}")

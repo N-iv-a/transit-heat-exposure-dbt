@@ -15,7 +15,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SEEDS_DIR = PROJECT_ROOT / "data_milan" / "seeds"
 DB_PATH = PROJECT_ROOT / "gtfs.duckdb"
 
-FILES = ["stop_solar_exposure", "stop_wait_time"]
+FILES = ["stop_solar_exposure", "stop_tree_shade", "stop_wait_time"]
 
 OSM_SHELTER_PATH = SEEDS_DIR / "osm_shelter" / "export_shelter_milano.geojson"
 
@@ -47,6 +47,27 @@ def _load_osm_shelter_stops(con: duckdb.DuckDBPyConnection, schema: str) -> None
     print(f"{schema}.osm_shelter_stops: {n} rows")
 
 
+TREES_PATH = SEEDS_DIR / "trees" / "alberi_milano_20250331.csv.gz"
+
+
+def _load_trees(con: duckdb.DuckDBPyConnection, schema: str) -> None:
+    if not TREES_PATH.exists():
+        raise FileNotFoundError(
+            f"Missing {TREES_PATH} -- run scripts/milan/prepare_tree_seed.py (needs the raw ds2484 CSV)."
+        )
+    con.execute(
+        f"""
+        create or replace table {schema}.trees as
+        select * from read_csv('{TREES_PATH}', header=true,
+            types={{'tree_id': 'VARCHAR', 'genus': 'VARCHAR', 'species': 'VARCHAR',
+                    'height_m': 'DOUBLE', 'crown_diameter_m': 'DOUBLE',
+                    'lon': 'DOUBLE', 'lat': 'DOUBLE'}})
+        """
+    )
+    n = con.execute(f"select count(*) from {schema}.trees").fetchone()[0]
+    print(f"{schema}.trees: {n} rows")
+
+
 def main() -> None:
     con = duckdb.connect(str(DB_PATH))
     schema = "raw_milan"
@@ -61,14 +82,16 @@ def main() -> None:
         # stop_wait_time.csv has one data-quality row (stop_id="ABBIATEGRASSO",
         # from wait_time.py's own source data) that breaks BIGINT
         # auto-detection -- same fix applied there, needed again here.
+        types = "'stop_id': 'VARCHAR'" + (", 'tree_id': 'VARCHAR'" if name == "stop_tree_shade" else "")
         con.execute(
             f"create or replace table {schema}.{name} as "
             f"select * from read_csv_auto('{path}', union_by_name=true, "
-            f"types={{'stop_id': 'VARCHAR'}})"
+            f"types={{{types}}})"
         )
         n = con.execute(f"select count(*) from {schema}.{name}").fetchone()[0]
         print(f"{schema}.{name}: {n} rows")
     _load_osm_shelter_stops(con, schema)
+    _load_trees(con, schema)
     con.close()
 
 

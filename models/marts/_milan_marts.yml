@@ -17,6 +17,25 @@ models:
           - accepted_values:
               arguments:
                 values: ["low", "medium", "high"]
+      - name: exposure_decile
+        description: Decile (1-10) of exposure_score_hours across stops, 10 = most exposed.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      - name: risk_level_stable
+        description: true if risk_level is the same for every shelter factor in var shelter_factor_grid.
+        tests:
+          - not_null
+      - name: tree_shade_hours
+        description: Hours 13-19 in tree crown shadow (not already in building shadow).
+        tests:
+          - not_null
+      - name: n_trees_20m
+        description: Valid municipal trees within 20 m (haversine).
+        tests:
+          - not_null
 
   - name: mart_stop_heat_wait_hourly
     columns:
@@ -29,7 +48,19 @@ models:
           - accepted_values:
               arguments:
                 values: [13, 14, 15, 16, 17, 18, 19]
+      - name: in_tree_shadow
+        tests:
+          - not_null
       - name: exposure_score
+        description: 0 building shadow, tree_transmissivity tree shadow, shelter_exposure_factor shelter in sun, 1 open sun.
+        tests:
+          - not_null
+      - name: tree_shade_hours
+        description: Of the stop, hours 13-19 in tree crown shadow.
+        tests:
+          - not_null
+      - name: n_trees_20m
+        description: Of the stop, valid trees within 20 m.
         tests:
           - not_null
       - name: lon
@@ -44,12 +75,33 @@ models:
           - accepted_values:
               arguments:
                 values: ["ref", "nearest", "unmatched"]
+      - name: wait_minutes
+        description: Central wait, mixed model (random + timetable-synchronised riders). NULL without service.
+      - name: wait_minutes_low
+        description: Lower bound, min(any-line wait, wait_minutes).
+      - name: wait_minutes_high
+        description: Upper bound, headway/2 of the least frequent line.
+      - name: wait_minutes_random
+        description: Old estimate, headway/2 with random arrivals (median across lines).
+      - name: exposed_wait_minutes
+        description: exposure_score * wait_minutes (mixed).
       - name: risk_level
         tests:
           - not_null
           - accepted_values:
               arguments:
                 values: ["low", "medium", "high"]
+      - name: exposure_decile
+        description: Of the stop (see mart_stop_heat_risk), 1-10.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      - name: risk_level_stable
+        description: Of the stop (see mart_stop_heat_risk).
+        tests:
+          - not_null
 
   - name: mart_stop_heat_wait
     columns:
@@ -72,3 +124,71 @@ models:
           - accepted_values:
               arguments:
                 values: ["ref", "nearest", "unmatched"]
+
+  - name: mart_stop_heat_risk_sensitivity
+    description: >
+      risk_level per stop and shelter factor (var shelter_factor_grid). Factor > 1 =
+      closed shelter that worsens heat stress (Lanza et al. 2025).
+    columns:
+      - name: osm_node_id
+        tests:
+          - not_null
+      - name: shelter_factor
+        tests:
+          - not_null
+      - name: exposure_score_hours
+        tests:
+          - not_null
+      - name: risk_level
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["low", "medium", "high"]
+
+  - name: mart_heat_wait_sensitivity
+    description: >
+      Per sync_share_max (var sync_share_grid) and risk_level: stops, median and p90
+      of avg_exposed_wait_minutes (minutes of wait in direct sun, not a thermal
+      stress index) with the mixed wait recomputed for that sync_share_max.
+    columns:
+      - name: sync_share_max
+        tests:
+          - not_null
+      - name: risk_level
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["low", "medium", "high"]
+      - name: n_stops
+        tests:
+          - not_null
+      - name: median_avg_exposed_wait_minutes
+        tests:
+          - not_null
+      - name: p90_avg_exposed_wait_minutes
+        tests:
+          - not_null
+
+  - name: mart_trees_map
+    description: >
+      Valid municipal trees (ds2484, 2025-03-31) for the map's tree view.
+      Excluded: height outside 1-45 m, crown outside 0.5-30 m, missing
+      values (docs/MILAN_DATA_DECISIONS.md section 4). shades_stop is exact:
+      the tree is the nearest one casting shadow on some stop at some hour
+      (stop_tree_shade seed).
+    columns:
+      - name: tree_id
+        tests:
+          - not_null
+          - unique
+      - name: height_m
+        tests:
+          - not_null
+      - name: crown_diameter_m
+        tests:
+          - not_null
+      - name: shades_stop
+        tests:
+          - not_null

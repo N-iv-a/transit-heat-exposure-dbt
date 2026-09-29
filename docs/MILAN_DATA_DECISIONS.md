@@ -65,9 +65,10 @@ model: building height alone only captures the "urban canyon" effect and
 misses two things that often matter more at a single stop: street trees and
 the stop's own shelter structure.
 
-**Ruled out: tree canopy (OSM `natural=tree`, `landuse=forest`).** Even
+**Ruled out: tree canopy from OSM (`natural=tree`, `landuse=forest`).** Even
 patchier than `building:levels` for individual street trees — risk of
-adding noise rather than signal. Not used.
+adding noise rather than signal. Not used. Trees are instead modelled from
+the municipal census, see §3.1 (T15).
 
 **Chosen: OSM `shelter` tag on bus stop nodes.** Verified via Overpass API
 (query run by the user via overpass-turbo.eu, since this sandbox's network
@@ -83,6 +84,47 @@ This is the most direct, most reliable signal in the whole dataset — more so
 than inferring shade from building geometry — and will be used as a second
 input layer alongside the building-height-based shadow calculation, not a
 replacement for it.
+
+### 3.1 Alberi comunali (T15)
+
+**Incluso**, con una fonte migliore di OSM: censimento alberi del Comune di
+Milano, dataset ds2484 ("Alberi - localizzazione", estrazione 31/03/2025,
+https://dati.comune.milano.it/dataset/ds2484_infogeo_alberi_localizzazione;
+**licenza da verificare** sulla scheda del dataset). 251.165 alberi. Il CSV
+grezzo (`data_milan/raw/trees/`, non versionato) è ridotto da
+`scripts/milan/prepare_tree_seed.py` a
+`data_milan/seeds/trees/alberi_milano_20250331.csv.gz` (3,2 MB: tree_id =
+obj_id, genere, specie, altezza, chioma, lon, lat a 6 decimali, nessun filtro).
+
+- **Filtri di plausibilità** (`stg_milan_trees.is_valid`, costanti `TREE_*` in
+  `solar_exposure.py`): altezza 1–45 m, chioma 0,5–30 m, coordinate presenti.
+  Validi 248.073, esclusi 3.092 (1,2%): altezza mancante 980, chioma mancante
+  1.691, altezza < 1 m 226 o > 45 m 7, chioma < 0,5 m 1.363 o > 30 m 11 (le
+  categorie si sovrappongono).
+- **Modello**: la chioma è un cilindro verticale, raggio = chioma/2, da
+  1/3 dell'altezza (`CROWN_BASE_FRACTION`) fino all'altezza. Una fermata non
+  già in ombra di edificio è `in_tree_shadow` se il raggio fermata → sole
+  attraversa almeno un cilindro (proiezione ≥ 0, distanza perpendicolare ≤
+  raggio, altezza del raggio dentro [base, cima] nell'intervallo in cui è
+  dentro il cerchio della chioma). Raggio di ricerca = altezza massima albero /
+  tan(elevazione), con indice a griglia in numpy. Il seed `stop_tree_shade.csv`
+  registra l'albero più vicino che fa ombra (`shades_stop` è esatto ma indica
+  solo quell'albero).
+- **Trasmissività**: `var('tree_transmissivity', 0.03)`: la chioma lascia
+  passare il 3% del sole (Konarska et al. 2014, Theoretical and Applied
+  Climatology 117, 363–376: 1,3–5,3%). `exposure_score` = 0 ombra edificio,
+  0,03 ombra chioma, `shelter_exposure_factor` pensilina al sole, 1 sole
+  pieno. Ombra di edificio ha la precedenza (mai entrambe).
+- **Limiti**: solo alberi comunali (non privati, parchi gestiti da altri,
+  cortili); chioma cilindrica (sovrastima gli angoli, ignora la forma e la
+  densità fogliare); nessuna stagionalità né potatura; dati al 2025 su ombra
+  del 2026.
+- **Effetto** (28/06/2026, 13–19 CEST): 1.675 coppie (fermata, ora) in ombra
+  di chioma su 20.517; 656 fermate su 2.931 con `tree_shade_hours` > 0 (max
+  7); 1.556 fermate con almeno un albero entro 20 m; 915 alberi su 248.073
+  fanno ombra a una fermata. Coppie esposte 34,9% → 32,6%. Fermate `high`
+  941 → 854 (medium 1.831, low 246). Attesa al sole mediana delle `high`
+  (modello misto) 5,3 → 5,2 min.
 
 ## 4. Shadow-casting method
 
@@ -243,6 +285,7 @@ Radius per hour, printed by the script:
 **Result on the real data (2,931 stops × 7 hours = 20,517 rows):**
 
 - % of (stop, hour) pairs exposed (no shadow, no shelter): 34.9% overall
+  before trees (T15: 32.6% with trees, see §3.1)
   (42.6% at 13:00 down to 22.2% at 19:00)
 - Physically sane pattern: only 4.9–5.4% of stops are in building shadow at
   solar noon (13:00–14:00, sun nearly overhead → short shadows), rising to
@@ -257,6 +300,26 @@ Radius per hour, printed by the script:
 Output seed: `data_milan/seeds/stop_solar_exposure.csv` (columns: stop_id,
 hour, solar_azimuth, solar_elevation, in_building_shadow, has_shelter,
 exposed).
+
+### 6.1 Sensitività al fattore pensilina (T13)
+
+La metrica corretta è **minuti di attesa al sole diretto**, non un indice di
+stress termico: il modello conta ombra, pensilina e sole, non temperatura
+dell'aria, umidità né irraggiamento riflesso. `shelter_exposure_factor` (0,5)
+è una scelta, non una misura, quindi `mart_stop_heat_risk_sensitivity` ricalcola
+`exposure_score_hours` e `risk_level` per ogni fattore in `shelter_factor_grid`
+(0; 0,25; 0,5; 0,75; 1; 1,2), stesse soglie (high >= 5, low <= 1). Un fattore
+> 1 rappresenta una pensilina chiusa che peggiora lo stress rispetto al sole
+aperto (ritenzione di calore e radiazione riflessa: Lanza et al. 2025; anche
+Ernst, Watkins e Chen 2025, Transportation Research Part D 140, 104653).
+
+Fermate con `risk_level` alto: 941 con fattore 0, 941 con 0,5, 2.212 con 1 e
+con 1,2 (basso: 1.657, 155, 89 e 73). **1.347 fermate (46%) restano nella stessa
+classe per ogni fattore, 1.584 (54%) no**; tra fattore 0 e 1,2 cambiano classe
+tutte e 1.584 le instabili (la classe è monotona nel fattore). Le colonne
+`risk_level_stable` e `exposure_decile` (10 = più esposte, decili di
+`exposure_score_hours`) sono in `mart_stop_heat_risk` e nei mart che ne derivano.
+Le fermate instabili "dipendono dalla pensilina" e vanno lette con cautela.
 
 ## Still open
 
@@ -330,6 +393,56 @@ No building-height backdrop on this map yet (different, larger bounding
 box than the exposure map's OSM stops — the backdrop image would need
 regenerating at that extent, not reused as-is).
 
+### 7.1 Modello misto, limiti inferiore e superiore (T12)
+
+Headway/2 vale solo con arrivi davvero casuali. Con servizi poco frequenti
+molti passeggeri guardano l'orario e arrivano poco prima della corsa, quindi
+l'attesa vera è più bassa. Il seed ora ha, oltre a `median_wait_minutes`
+(invariata, H/2 con H = headway mediano tra le linee):
+`median_headway_minutes` (H), `wait_any_line_minutes` (tutte le partenze di
+tutte le linee alla fermata, ordinate; sugli intervalli consecutivi 0 < H < 3 h
+con prima partenza nell'ora, attesa casuale E[H²]/(2·E[H]) = E[H]/2·(1+CV²),
+Osuna e Newell 1972) e `wait_least_frequent_minutes` (max tra le linee di
+headway/2).
+
+**Modello misto** (`int_stop_wait_time`, Luethi et al. 2007 per l'idea di una
+quota di passeggeri sincronizzati): quota sincronizzata s = 0 per H ≤ 5 min,
+lineare fino a `sync_share_max` per H = 11 min, costante oltre (transizione
+casuale/non casuale tra 5 e 11 min: Singh, Graham, Hörcher, Anderson 2021,
+Transportation Research Part C 130; Ingvardson et al. 2018, Transportation
+Research Part C). Attesa = (1−s)·H/2 + s·min(H/2, `sync_wait_minutes`).
+**Parametri, ipotesi e non misure:** `sync_share_max` = 0,5 e
+`sync_wait_minutes` = 2 min (var dbt in `dbt_project.yml`, modificabili con
+`--vars` per la sensitività). Le fonti danno la forma della transizione, non
+questi due valori.
+
+**Limiti** in `mart_stop_heat_wait_hourly`: `wait_minutes_low` =
+min(attesa qualsiasi linea, misto); `wait_minutes_high` = linea meno frequente;
+`wait_minutes_random` = vecchia stima H/2. Ordine atteso low ≤ misto ≤ random ≤
+high, verificato da un test (tolleranza 0,06 min per l'arrotondamento a un
+decimale di `median_wait_minutes`). `wait_time_bucket` ora si calcola sul misto.
+
+**Numeri** (fermate abbinate, 18.226 stop-ora con servizio): mediana attesa
+casuale 9,0 min contro 5,5 min misto; mediane low 5,3 e high 9,5 (su tutte le
+stop-ora del mart). Il 93,8% delle stop-ora ha H ≥ 11 min, cioè s = s_max:
+di domenica pomeriggio il servizio è raro, quindi il risultato dipende molto
+da `sync_share_max`. `avg_exposed_wait_minutes` mediano per le fermate a
+rischio alto: 5,25 min (era 8,6 con l'attesa casuale).
+
+**Sensitività a `sync_share_max`** (`mart_heat_wait_sensitivity`, misto
+ricalcolato con `sync_share_grid`; mediana / p90 di `avg_exposed_wait_minutes`,
+minuti di attesa al sole diretto, non un indice di stress termico):
+
+| sync_share_max | alto (795 fermate) | medio (1.692) | basso (140) |
+|---|---|---|---|
+| 0 | 8,61 / 11,41 | 3,96 / 5,88 | 1,18 / 1,64 |
+| 0,25 | 6,91 / 9,06 | 3,21 / 4,66 | 0,96 / 1,30 |
+| 0,5 (default) | 5,25 / 6,71 | 2,44 / 3,43 | 0,73 / 0,96 |
+| 0,6 | 4,59 / 5,76 | 2,15 / 2,97 | 0,64 / 0,83 |
+
+Il valore cambia di circa il 47% fra 0 e 0,6 per il rischio alto: l'ordine dei
+livelli resta, ma l'entità assoluta dipende da un'ipotesi.
+
 ## 8. dbt layer
 
 **Ingestion:** `ingestion/load_milan.py`, mirroring `load_gtfs.py`'s
@@ -351,12 +464,18 @@ equivalent to `data/raw/` and no per-agency file list to iterate.
   ramp uses).
 - `mart_stop_heat_risk` — grain change from `stg_stop_solar_exposure`
   (stop × hour) to stop. Per hour, `exposure_score` (in staging) is 0 in
-  building shadow, `var('shelter_exposure_factor', 0.5)` in the sun under a
+  building shadow, `var('tree_transmissivity', 0.03)` in tree crown shadow,
+  `var('shelter_exposure_factor', 0.5)` in the sun under a
   shelter, 1 in unsheltered sun (see "Still open", decided). The mart sums
   it to `exposure_score_hours` (0–7) and `risk_level` (`high` ≥ 5, `low`
-  ≤ 1, else `medium`): 941 high / 1,835 medium / 155 low. The original
+  ≤ 1, else `medium`): 941 high / 1,835 medium / 155 low (before T15; with
+  tree shadow, weight `tree_transmissivity`: 854 / 1,831 / 246). The original
   binary reading is kept as `hours_exposed_binary` / `risk_level_binary`
   (`high` = exposed all 7 hours — the 562-stop finding from §6).
+- `stg_milan_trees` / `mart_trees_map` / `int_stop_tree_counts` (T15): tree
+  census with `is_valid`, valid trees with `shades_stop`, trees within 20 m
+  per stop (`n_trees_20m`); `tree_shade_hours` and `n_trees_20m` are columns of
+  `mart_stop_heat_risk` and `mart_stop_heat_wait_hourly`.
 - `mart_stop_heat_wait_hourly` — stop × hour (20,517 rows), the map's
   data source; columns fixed by `contract/map_data.md`.
 - `int_osm_gtfs_stop_bridge` — one row per OSM stop (from the OSM export,
@@ -373,7 +492,8 @@ equivalent to `data/raw/` and no per-agency file list to iterate.
   `mart_stop_heat_wait_hourly` — the same definition the map uses, pinned
   by `assert_heat_wait_avg_matches_hourly.sql`: average minutes a passenger
   waits in the sun. Median 8.6 min for `high`-risk stops (p90 11.4), 4.0
-  for `medium`, 1.2 for `low`. Exposure and wait both refer to June 28
+  for `medium`, 1.2 for `low` (random-wait model, before T12/T15; with the
+  mixed model and tree shadow: 5.2 for `high` (p90 6.6), 2.3, 0.4). Exposure and wait both refer to June 28
   2026 (feed v417).
 - Tests: `not_null`/`accepted_values` on hour and bucket/risk columns, plus
   a singular uniqueness test (`assert_stg_stop_solar_exposure_unique_node_hour.sql`,

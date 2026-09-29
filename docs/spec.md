@@ -22,7 +22,7 @@ Ogni assunzione è dichiarata, non nascosta; i limiti sono parte del risultato.
 **Spazio e dati**
 - Altezza edifici: Copernicus Urban Atlas **2012**, raster 10 m. Gli edifici costruiti dopo il 2012 (Porta Nuova, CityLife) mancano.
 - Pensiline: tag OSM `shelter` sulle 2.931 fermate bus/tram (96,7% taggate), trattato come affidabile.
-- Alberi: **non modellati**. La copertura OSM degli alberi stradali è troppo irregolare; oggi l'ombra viene solo da edifici e pensiline.
+- Alberi: censimento alberi del Comune di Milano (ds2484, 31/03/2025; licenza da verificare), 248.073 alberi validi su 251.165 (altezza 1–45 m, chioma 0,5–30 m). Chioma = cilindro verticale (da 1/3 dell'altezza alla cima); ombra di chioma se il raggio verso il sole lo attraversa; trasmissività 3% (`tree_transmissivity`, Konarska et al. 2014). Solo alberi comunali, nessun albero privato. Dettagli in `docs/MILAN_DATA_DECISIONS.md` §3.1.
 - Fermate OSM (esposizione) e GTFS (attesa) sono due insiemi di ID diversi, collegati per tag `ref` o per prossimità (vedi Regole).
 
 **Comportamento del passeggero**
@@ -36,25 +36,25 @@ Ogni assunzione è dichiarata, non nascosta; i limiti sono parte del risultato.
 4. **Rischio calore per fermata**: somma dei punteggi sulle 7 ore (0–7); alto ≥ 5, basso ≤ 1, medio altrimenti.
 5. **Attesa per fermata e ora**: per linea, mediana degli intervalli tra partenze nell'ora, divisa per 2; poi mediana tra le linee della fermata; gli intervalli > 3 h (ultime corse) sono esclusi.
 6. **Collegamento OSM ↔ GTFS**: prima `ref` OSM = `stop_id` GTFS (entro 200 m, controllo di coerenza), poi fermata GTFS più vicina entro 30 m (distanza haversine), altrimenti non abbinata.
-7. **Attesa al sole**: per ogni ora punteggio × attesa di quella stessa ora; media sulle ore con servizio = `avg_exposed_wait_minutes`, cioè i minuti medi che un passeggero passa ad aspettare sotto il sole. Stessa definizione in dbt e nella mappa.
+7. **Attesa al sole**: per ogni ora punteggio × attesa di quella stessa ora; media sulle ore con servizio = `avg_exposed_wait_minutes`, cioè i minuti medi che un passeggero passa ad aspettare sotto il sole. L'attesa è il modello misto (arrivi casuali + quota sincronizzata sull'orario, con limiti inferiore e superiore): `docs/MILAN_DATA_DECISIONS.md` §7.1. Stessa definizione in dbt e nella mappa.
 8. **Valencia**: chiavi con prefisso agenzia (`EMT-…`, `GVA-…`); orari oltre le 24:00 gestiti col modulo 24; frequenze aggregate per tipo di giorno, corse per data esatta.
 
 ## Output
 **Tabelle dbt** (DuckDB `gtfs.duckdb`)
 - Valencia: `dim_agency`, `dim_route`, `dim_stop`, `dim_date`, `fct_trips`, `fct_stop_times`, `mart_service_frequency`, `mart_stop_coverage`.
-- Milano: `mart_stop_heat_risk` (rischio calore per fermata), `int_stop_wait_time` (attesa per fermata e ora), `int_osm_gtfs_stop_bridge` (collegamento degli ID), `mart_stop_heat_wait` (calore × attesa per fermata).
+- Milano: `mart_stop_heat_risk` (rischio calore per fermata), `int_stop_wait_time` (attesa per fermata e ora), `int_osm_gtfs_stop_bridge` (collegamento degli ID), `mart_stop_heat_wait` (calore × attesa per fermata), `mart_stop_heat_risk_sensitivity` (classe di rischio per fattore pensilina), `mart_heat_wait_sensitivity` (attesa per `sync_share_max` e classe), `mart_trees_map` (alberi validi per la mappa; `n_trees_20m` e `tree_shade_hours` per fermata). Metrica: minuti di attesa al sole diretto, non stress termico.
 
 **Risultati principali (Milano)**
-- 941 fermate su 2.931 ad alto rischio calore (562 con la lettura binaria), 155 a basso rischio.
-- Attesa al sole mediana: 8,6 min per le fermate ad alto rischio (p90 11,4), 4,0 per il medio, 1,2 per il basso.
+- 854 fermate su 2.931 ad alto rischio calore (941 prima degli alberi; 442 con la lettura binaria), 246 a basso rischio. 656 fermate hanno almeno un'ora in ombra di chioma.
+- Attesa al sole mediana (modello misto, con alberi): 5,2 min per le fermate ad alto rischio (p90 6,6), 2,3 per il medio, 0,4 per il basso. Coppie fermata-ora esposte: 32,6% (34,9% senza alberi).
 - 2.627 fermate collegate al GTFS (2.511 per `ref`, 116 per prossimità), 304 senza abbinamento.
 
 **Mappa**: `scripts/milan/map/dist/milan_heat_map.html`, pagina HTML autocontenuta (~6 MB: dati, sfondo edifici e deck.gl incorporati). Vista principale 3D **Calore × attesa**: una colonna per fermata, altezza = attesa (tetto 25 min), colore = punteggio di esposizione, ora per ora o media 13–19; sotto-viste Esposizione e Attesa. Legge da dbt (`contract/map_data.md`).
 
-**Test**: data test dbt (unicità, valori ammessi, soglie di distanza, punteggio valido, quota di fermate `unmatched` ≤ 12%, `exposure_score_hours` tra 0 e 7, 7 righe orarie per fermata, `risk_level` coerente con il punteggio) e 12 test pytest sul calcolo dell'ombra.
+**Test**: data test dbt (unicità, valori ammessi, soglie di distanza, punteggio valido, quota di fermate `unmatched` ≤ 12%, `exposure_score_hours` tra 0 e 7, 7 righe orarie per fermata, `risk_level` coerente con il punteggio, 6 righe per fermata nella sensitività pensilina, decili 1–10, 12 righe nella sensitività attesa coerenti col mart principale) e 12 test pytest sul calcolo dell'ombra.
 
 ## Fuori scope (per ora)
-Più giorni oltre il 28 giugno; alberi; seconda rete milanese (Trenord); mappa stradale di sfondo; aggiornamenti incrementali e orchestratore.
+Più giorni oltre il 28 giugno; alberi privati e stagionalità delle chiome; seconda rete milanese (Trenord); mappa stradale di sfondo; aggiornamenti incrementali e orchestratore.
 
 ## Architettura
 `raw_<fonte>.*` (ingestion) → `staging/<fonte>/` → `intermediate/` → `marts/`. Un solo progetto dbt, un solo `gtfs.duckdb`. Aggiungere una città = schema `raw_<città>`, cartella `staging/<città>/`, doc `docs/<CITTÀ>_DATA_DECISIONS.md`.

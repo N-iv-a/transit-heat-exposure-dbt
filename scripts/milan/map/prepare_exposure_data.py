@@ -1,7 +1,8 @@
 """Read main.mart_stop_heat_wait_hourly from gtfs.duckdb into the compact
 per-stop JSON the map template embeds directly (field names kept short since
 this ships inline in the page: id, n(ame), lo(n), la(t), sh(elter),
-e(xposure score summed 13..19, 0-7), h(ourly exposure_score, 13..19)).
+e(xposure score summed 13..19, 0-7), h(ourly exposure_score, 13..19),
+st = risk_level_stable 1/0).
 
 See contract/map_data.md for the mart's grain and columns -- the frontend
 does not recompute exposure_score, it only aggregates per stop for display.
@@ -19,7 +20,8 @@ OUTPUT_JSON = Path(__file__).resolve().parent / "data" / "exposure.json"
 HOURS = list(range(13, 20))
 
 QUERY = """
-select osm_node_id, stop_name, lon, lat, has_shelter, hour, exposure_score
+select osm_node_id, stop_name, lon, lat, has_shelter, hour, exposure_score,
+       risk_level_stable
 from main.mart_stop_heat_wait_hourly
 order by osm_node_id, hour
 """
@@ -31,10 +33,10 @@ def main() -> None:
     con.close()
 
     by_stop: dict[str, dict] = {}
-    for osm_node_id, stop_name, lon, lat, has_shelter, hour, exposure_score in rows:
+    for osm_node_id, stop_name, lon, lat, has_shelter, hour, exposure_score, stable in rows:
         stop = by_stop.setdefault(
             osm_node_id,
-            {"n": stop_name or "", "lo": lon, "la": lat, "sh": bool(has_shelter), "scores": {}},
+            {"n": stop_name or "", "lo": lon, "la": lat, "sh": bool(has_shelter), "st": 1 if stable else 0, "scores": {}},
         )
         stop["scores"][hour] = exposure_score
 
@@ -48,6 +50,7 @@ def main() -> None:
                 "lo": round(stop["lo"], 5),
                 "la": round(stop["la"], 5),
                 "sh": stop["sh"],
+                "st": stop["st"],
                 "e": round(sum(v for v in h if v is not None), 3),
                 "h": [round(v, 3) if v is not None else None for v in h],
             }

@@ -186,3 +186,63 @@ def test_critical_hours_are_arpa_window_in_cest():
 def test_sun_still_high_at_19_cest_on_study_day():
     _, elevation = solar_position(datetime.datetime(2026, 6, 28, 19, 0, tzinfo=CEST))
     assert elevation > 15
+
+
+# --- T15: tree crown shadow -------------------------------------------------
+
+from solar_exposure import TreeIndex, is_in_tree_shadow, tree_shadow_source  # noqa: E402
+
+
+def _trees(specs):
+    """specs: list of (id, x, y, crown_diameter, height) -> tree arrays."""
+    h = np.array([s[4] for s in specs], dtype=float)
+    return {
+        "id": np.array([s[0] for s in specs], dtype=object),
+        "x": np.array([s[1] for s in specs], dtype=float),
+        "y": np.array([s[2] for s in specs], dtype=float),
+        "radius": np.array([s[3] for s in specs], dtype=float) / 2,
+        "base": h / 3,
+        "top": h,
+    }
+
+
+def _shadow(trees, azimuth=180.0, elevation=45.0, radius=200.0):
+    return tree_shadow_source(0.0, 0.0, azimuth, elevation, TreeIndex(trees, radius), radius)
+
+
+def test_tree_between_stop_and_sun_casts_shadow():
+    # Sun due south (azimuth 180), 45 deg: ray height = distance. Tree 10 m
+    # south, 12 m tall (crown 4-12 m), crown 6 m wide: ray is at 7-13 m inside it.
+    trees = _trees([("t1", 0, -10, 6, 12)])
+    assert _shadow(trees) == 0
+
+
+def test_tree_behind_stop_does_not_cast_shadow():
+    trees = _trees([("t1", 0, 10, 6, 12)])  # north of the stop, sun in the south
+    assert _shadow(trees) is None
+
+
+def test_tree_off_the_ray_does_not_cast_shadow():
+    trees = _trees([("t1", 20, -10, 6, 12)])
+    assert _shadow(trees) is None
+
+
+def test_crown_too_low_for_high_sun():
+    # Sun at 70 deg: at 10 m distance the ray is at ~27 m, well above a 12 m
+    # tree; the ray only dips into the crown height range (4-12 m) at 1.5-4.4 m,
+    # where the 6 m wide crown 10 m away is not.
+    trees = _trees([("t1", 0, -10, 6, 12)])
+    assert _shadow(trees, elevation=70) is None
+    assert is_in_tree_shadow(0.0, 0.0, 180.0, 45.0, TreeIndex(trees, 200.0), 200.0)
+
+
+def test_crown_too_high_and_ray_passes_under():
+    # Very low sun (10 deg): at 10 m the ray is at 1.8 m, under the crown base (4 m).
+    trees = _trees([("t1", 0, -10, 2, 12)])
+    assert _shadow(trees, elevation=10) is None
+
+
+def test_nearest_tree_is_reported_and_grid_finds_neighbour_cells():
+    # Cell size 50: the tree at y=-60 is in a different cell than the stop.
+    trees = _trees([("far", 0, -60, 6, 80), ("near", 0, -20, 6, 30)])
+    assert _shadow(trees, radius=50.0) == 1

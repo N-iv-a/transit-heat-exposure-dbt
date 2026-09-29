@@ -24,6 +24,7 @@ cd ../../.. && dbt run --profiles-dir . --select source:raw_milan+ && cd scripts
 python prepare_main_data.py           # -> data/main.json (main deck.gl view)
 python prepare_exposure_data.py       # -> data/exposure.json
 python prepare_wait_data.py           # -> data/wait_time.json
+python prepare_tree_data.py           # -> data/trees.json (build_map.py runs it too)
 python render_building_backdrop.py    # -> data/buildings.png, data/buildings_deck.png
 python build_map.py                   # -> dist/site/ (static site) + dist/milan_heat_map.html (single file)
 ```
@@ -81,6 +82,7 @@ render_og_image.py`.
 | `template.html` | The page itself — versioned source of truth. Has `__PLACEHOLDER__` markers where data gets injected. |
 | `prepare_exposure_data.py` | `stop_solar_exposure.csv` + OSM shelter geojson → `data/exposure.json` |
 | `prepare_wait_data.py` | `stop_wait_time.csv` → `data/wait_time.json` |
+| `prepare_tree_data.py` | `mart_trees_map` → `data/trees.json` (columnar, quantized; run by `build_map.py`, loaded on demand by the Trees view) |
 | `render_building_backdrop.py` | Building-height raster → `data/buildings.png`, projected to match `template.html`'s own map projection |
 | `build_map.py` | Fills the template's placeholders, writes `dist/site/` and `dist/milan_heat_map.html` |
 | `render_og_image.py` | Manual: screenshots the site to `og.png` (versioned) |

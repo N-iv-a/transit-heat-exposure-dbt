@@ -11,6 +11,9 @@
   all) hours -- unmatched to GTFS, or matched but with no service running
   at that hour on the wait-time reference day.
 
+  wait_minutes = mixed model (central), _low = min(any-line wait, mixed),
+  _high = least frequent line, _random = old headway/2 estimate (T12).
+
   int_stop_wait_time is one row per (gtfs_stop_id, hour) (verified: no
   duplicates), so the left join below does not fan out exposure rows.
 #}
@@ -21,6 +24,7 @@ with exposure as (
         osm_node_id,
         hour,
         in_building_shadow,
+        in_tree_shadow,
         has_shelter,
         exposure_score
 
@@ -49,14 +53,15 @@ bridge as (
 
 wait_time as (
 
-    select gtfs_stop_id, hour, median_wait_minutes
+    select gtfs_stop_id, hour, median_wait_minutes, wait_mixed_minutes,
+           wait_any_line_minutes, wait_least_frequent_minutes
     from {{ ref('int_stop_wait_time') }}
 
 ),
 
 risk as (
 
-    select osm_node_id, risk_level
+    select osm_node_id, risk_level, risk_level_stable, exposure_decile, tree_shade_hours, n_trees_20m
     from {{ ref('mart_stop_heat_risk') }}
 
 )
@@ -68,13 +73,21 @@ select
     s.lat,
     e.hour,
     e.in_building_shadow,
+    e.in_tree_shadow,
     e.has_shelter,
     e.exposure_score,
     b.gtfs_stop_id,
     b.match_method,
-    w.median_wait_minutes as wait_minutes,
-    e.exposure_score * w.median_wait_minutes as exposed_wait_minutes,
-    r.risk_level
+    w.wait_mixed_minutes as wait_minutes,
+    least(w.wait_any_line_minutes, w.wait_mixed_minutes) as wait_minutes_low,
+    w.wait_least_frequent_minutes as wait_minutes_high,
+    w.median_wait_minutes as wait_minutes_random,
+    e.exposure_score * w.wait_mixed_minutes as exposed_wait_minutes,
+    r.risk_level,
+    r.exposure_decile,
+    r.risk_level_stable,
+    r.tree_shade_hours,
+    r.n_trees_20m
 
 from exposure e
 inner join shelter_stops s on e.osm_node_id = s.osm_node_id
